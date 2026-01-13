@@ -1,11 +1,14 @@
 package eliseev.aiadvent.chat.presentation.chat
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,12 +27,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import eliseev.aiadvent.chat.R
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.presentation.chat.components.ChatInput
 import eliseev.aiadvent.chat.presentation.chat.components.MessageItem
 import eliseev.aiadvent.chat.presentation.chat.components.ThinkingIndicator
+import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,95 +50,185 @@ fun ChatScreen(
     val visibleMessages = uiState.messages.filter { 
         it.role != MessageRole.SYSTEM 
     }
-    
-    // Прокрутка к последнему сообщению при добавлении новых или при загрузке
-    LaunchedEffect(visibleMessages.size, uiState.isLoading) {
-        if (visibleMessages.isNotEmpty()) {
+
+    AutoScrollToLatestMessage(
+        messagesSize = visibleMessages.size,
+        isLoading = uiState.isLoading,
+        listState = listState
+    )
+
+    ShowErrorSnackbar(
+        errorMessage = uiState.errorMessage,
+        snackbarHostState = snackbarHostState,
+        onDismiss = viewModel::dismissError
+    )
+
+    Scaffold(
+        topBar = { ChatTopBar() },
+        snackbarHost = { ChatSnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        ChatContent(
+            paddingValues = paddingValues,
+            visibleMessages = visibleMessages,
+            isLoading = uiState.isLoading,
+            inputText = uiState.inputText,
+            listState = listState,
+            onTextChange = viewModel::updateInputText,
+            onSendClick = viewModel::sendMessage
+        )
+    }
+}
+
+@Composable
+private fun AutoScrollToLatestMessage(
+    messagesSize: Int,
+    isLoading: Boolean,
+    listState: LazyListState
+) {
+    LaunchedEffect(messagesSize, isLoading) {
+        if (messagesSize > 0) {
             delay(100)
-            val targetIndex = if (uiState.isLoading) {
-                // Если идет загрузка, прокручиваем к индикатору "Сильно думаю ..."
-                visibleMessages.size
+            val targetIndex = if (isLoading) {
+                messagesSize
             } else {
-                visibleMessages.size - 1
+                messagesSize - 1
             }
             listState.animateScrollToItem(targetIndex)
         }
     }
+}
 
-    // Показ ошибок через Snackbar
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { error ->
+@Composable
+private fun ShowErrorSnackbar(
+    errorMessage: String?,
+    snackbarHostState: SnackbarHostState,
+    onDismiss: () -> Unit
+) {
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { error ->
             snackbarHostState.showSnackbar(error)
-            viewModel.dismissError()
+            onDismiss()
         }
     }
+}
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("AI Advent Chat") }
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-        }
-    ) { paddingValues ->
-        Column(
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatTopBar() {
+    TopAppBar(
+        title = { Text(stringResource(R.string.app_name)) }
+    )
+}
+
+@Composable
+private fun ChatSnackbarHost(snackbarHostState: SnackbarHostState) {
+    SnackbarHost(hostState = snackbarHostState) { data ->
+        Snackbar(
+            snackbarData = data,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun ChatContent(
+    paddingValues: PaddingValues,
+    visibleMessages: List<UiMessage>,
+    isLoading: Boolean,
+    inputText: String,
+    listState: LazyListState,
+    onTextChange: (String) -> Unit,
+    onSendClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+                .weight(1f)
+                .fillMaxWidth()
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                if (uiState.isLoading && visibleMessages.isEmpty()) {
-                    // Показываем лоадер по центру при первой загрузке
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                } else if (visibleMessages.isEmpty()) {
-                    Text(
-                        text = "Начните разговор с AI",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        reverseLayout = false
-                    ) {
-                        items(
-                            items = visibleMessages,
-                            key = { it.timestamp }
-                        ) { message ->
-                            MessageItem(message = message)
-                        }
-                        
-                        // Показываем индикатор "Сильно думаю ..." если идет загрузка
-                        if (uiState.isLoading) {
-                            item {
-                                ThinkingIndicator()
-                            }
-                        }
-                    }
-                }
-            }
-
-            ChatInput(
-                text = uiState.inputText,
-                onTextChange = viewModel::updateInputText,
-                onSendClick = viewModel::sendMessage,
-                enabled = !uiState.isLoading
+            MessagesContent(
+                visibleMessages = visibleMessages,
+                isLoading = isLoading,
+                listState = listState
             )
+        }
+
+        ChatInput(
+            text = inputText,
+            onTextChange = onTextChange,
+            onSendClick = onSendClick,
+            enabled = !isLoading,
+            modifier = Modifier
+        )
+    }
+}
+
+@Composable
+private fun BoxScope.MessagesContent(
+    visibleMessages: List<UiMessage>,
+    isLoading: Boolean,
+    listState: LazyListState
+) {
+    when {
+        isLoading && visibleMessages.isEmpty() -> {
+            InitialLoadingIndicator()
+        }
+        visibleMessages.isEmpty() -> {
+            EmptyStateMessage()
+        }
+        else -> {
+            MessagesList(
+                visibleMessages = visibleMessages,
+                isLoading = isLoading,
+                listState = listState
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.InitialLoadingIndicator() {
+    CircularProgressIndicator(
+        modifier = Modifier.align(Alignment.Center)
+    )
+}
+
+@Composable
+private fun BoxScope.EmptyStateMessage() {
+    Text(
+        text = stringResource(R.string.empty_state_message),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        modifier = Modifier.align(Alignment.Center)
+    )
+}
+
+@Composable
+private fun MessagesList(
+    visibleMessages: List<UiMessage>,
+    isLoading: Boolean,
+    listState: LazyListState
+) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        reverseLayout = false
+    ) {
+        items(
+            items = visibleMessages,
+            key = { it.timestamp }
+        ) { message ->
+            MessageItem(message = message)
+        }
+        
+        if (isLoading) {
+            item {
+                ThinkingIndicator()
+            }
         }
     }
 }

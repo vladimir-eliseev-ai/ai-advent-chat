@@ -8,8 +8,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eliseev.aiadvent.chat.R
 
 @Composable
 fun ThinkingIndicator(
@@ -22,7 +24,7 @@ fun ThinkingIndicator(
         contentAlignment = Alignment.CenterStart
     ) {
         Text(
-            text = "Сильно думаю ...",
+            text = stringResource(R.string.thinking_indicator),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             textAlign = TextAlign.Start

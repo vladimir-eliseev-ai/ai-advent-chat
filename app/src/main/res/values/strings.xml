@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">AI Advent Chat</string>
+    <string name="empty_state_message">Начните разговор с AI</string>
+    <string name="input_placeholder">Введите сообщение...</string>
+    <string name="send_button_description">Отправить</string>
+    <string name="thinking_indicator">Сильно думаю ...</string>
+    <string name="question_label">Вопрос:</string>
+    <string name="response_label">Ответ:</string>
+    <string name="date_label">Дата:</string>
+    <string name="tags_label">Теги:</string>
+    <string name="links_label">Ссылки:</string>
 </resources>

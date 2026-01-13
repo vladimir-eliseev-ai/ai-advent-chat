@@ -4,107 +4,112 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eliseev.aiadvent.chat.data.model.ChatMessage
 import eliseev.aiadvent.chat.data.model.MessageRole
+import eliseev.aiadvent.chat.data.repository.ChatRepository
+import eliseev.aiadvent.chat.data.store.ChatMessageStore
 import eliseev.aiadvent.chat.domain.model.ChatResult
-import eliseev.aiadvent.chat.domain.usecase.SendMessageUseCase
+import eliseev.aiadvent.chat.presentation.chat.mapper.ChatMessageMapper
+import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class ChatUiState(
-    val messages: List<ChatMessage> = emptyList(),
+    val messages: List<UiMessage> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val inputText: String = ""
 )
 
 class ChatViewModel(
-    private val sendMessageUseCase: SendMessageUseCase
+    private val repository: ChatRepository,
+    private val messageStore: ChatMessageStore
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(
+    private val _isLoading = MutableStateFlow(false)
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    private val _inputText = MutableStateFlow("")
+
+    val uiState: StateFlow<ChatUiState> = combine(
+        messageStore.messages.map { messages ->
+            ChatMessageMapper.toUiMessages(messages)
+        },
+        _isLoading,
+        _errorMessage,
+        _inputText
+    ) { messages, isLoading, errorMessage, inputText ->
         ChatUiState(
-            messages = listOf(
-                ChatMessage(
-                    role = MessageRole.SYSTEM,
-                    content = "You are a helpful assistant."
-                )
-            )
+            messages = messages,
+            isLoading = isLoading,
+            errorMessage = errorMessage,
+            inputText = inputText
         )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ChatUiState()
     )
-    val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     fun updateInputText(text: String) {
-        _uiState.update { it.copy(inputText = text) }
+        _inputText.value = text
     }
 
     fun sendMessage() {
-        val currentText = _uiState.value.inputText
-        if (currentText.isBlank() || _uiState.value.isLoading) {
+        val messageText = _inputText.value.trim()
+        if (messageText.isBlank() || _isLoading.value) {
             return
         }
 
-        val currentMessages = _uiState.value.messages
-        
-        // Сразу добавляем сообщение пользователя в список
-        val userMessage = ChatMessage(
-            role = MessageRole.USER,
-            content = currentText.trim()
-        )
-        val messagesWithUser = currentMessages + userMessage
-        
-        _uiState.update { 
-            it.copy(
-                messages = messagesWithUser,
-                inputText = "",
-                isLoading = true,
-                errorMessage = null
-            )
-        }
+        addUserMessage(messageText)
+        clearInput()
+        setLoadingState(true)
 
         viewModelScope.launch {
-            when (val result = sendMessageUseCase(currentMessages, currentText)) {
-                is ChatResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            messages = result.data,
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
-                }
-                is ChatResult.Error -> {
-                    // При ошибке оставляем сообщение пользователя, но показываем ошибку
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.message
-                        )
-                    }
-                }
-                is ChatResult.Loading -> {
-                    // Already set loading state
-                }
+            val result = repository.sendMessage(messageStore.getMessages())
+            handleSendMessageResult(result)
+        }
+    }
+
+    private fun addUserMessage(text: String) {
+        val userMessage = ChatMessage(
+            role = MessageRole.USER,
+            content = text
+        )
+        messageStore.addMessage(userMessage)
+    }
+
+    private fun clearInput() {
+        _inputText.value = ""
+    }
+
+    private fun setLoadingState(isLoading: Boolean) {
+        _isLoading.value = isLoading
+        if (isLoading) {
+            _errorMessage.value = null
+        }
+    }
+
+    private fun handleSendMessageResult(result: ChatResult<List<ChatMessage>>) {
+        when (result) {
+            is ChatResult.Success -> {
+                messageStore.updateMessages(result.data)
+                setLoadingState(false)
+            }
+            is ChatResult.Error -> {
+                setLoadingState(false)
+                _errorMessage.value = result.message
+            }
+            is ChatResult.Loading -> {
+                // Loading state already set
             }
         }
     }
 
-    fun clearChat() {
-        _uiState.update { 
-            ChatUiState(
-                messages = listOf(
-                    ChatMessage(
-                        role = MessageRole.SYSTEM,
-                        content = "You are a helpful assistant."
-                    )
-                )
-            )
-        }
-    }
-
     fun dismissError() {
-        _uiState.update { it.copy(errorMessage = null) }
+        _errorMessage.value = null
     }
 }
 

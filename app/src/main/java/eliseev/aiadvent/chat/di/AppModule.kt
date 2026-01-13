@@ -1,18 +1,30 @@
 package eliseev.aiadvent.chat.di
 
+import android.content.Context
 import eliseev.aiadvent.chat.BuildConfig
+import eliseev.aiadvent.chat.data.model.SystemPromptProvider
 import eliseev.aiadvent.chat.data.repository.ChatRepository
+import eliseev.aiadvent.chat.data.store.ChatMessageStore
 import eliseev.aiadvent.chat.domain.usecase.SendMessageUseCase
 import eliseev.aiadvent.chat.presentation.chat.ChatViewModel
+import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
     single { BuildConfig.DEEPSEEK_API_KEY }
+    
+    single {
+        SystemPromptProvider(androidContext())
+    }
+    
+    single {
+        ChatMessageStore()
+    }
 }
 
 val repositoryModule = module {
-    single { ChatRepository(get()) }
+    single { ChatRepository(get(), get()) }
 }
 
 val useCaseModule = module {

@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import eliseev.aiadvent.chat.R
 
 @Composable
 fun ChatInput(
@@ -51,7 +53,7 @@ fun ChatInput(
                 },
             enabled = enabled,
             placeholder = {
-                Text("Введите сообщение...")
+                Text(stringResource(R.string.input_placeholder))
             },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -78,7 +80,7 @@ fun ChatInput(
         ) {
             Icon(
                 imageVector = Icons.Default.Send,
-                contentDescription = "Отправить",
+                contentDescription = stringResource(R.string.send_button_description),
                 tint = if (enabled && text.isNotBlank()) {
                     MaterialTheme.colorScheme.primary
                 } else {
