@@ -1,6 +1,7 @@
 package eliseev.aiadvent.chat.presentation.chat.model
 
 import eliseev.aiadvent.chat.data.model.MessageRole
+import eliseev.aiadvent.chat.data.model.MovieInfo
 
 data class UiMessage(
     val role: MessageRole,
@@ -10,5 +11,8 @@ data class UiMessage(
     val body: String? = null,
     val tags: List<String>? = null,
     val urls: List<String>? = null,
-    val userQuestionSummary: String? = null
+    val userQuestionSummary: String? = null,
+    val type: String? = null, // "movie_recommendation" или "clarification_needed"
+    val movie: MovieInfo? = null,
+    val questions: List<String>? = null
 )

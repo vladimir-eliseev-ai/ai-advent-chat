@@ -27,7 +27,10 @@ object ChatMessageMapper {
                 formattedDate = formattedDate,
                 body = structuredResponse.body,
                 tags = structuredResponse.tags,
-                urls = structuredResponse.urls
+                urls = structuredResponse.urls,
+                type = structuredResponse.type,
+                movie = structuredResponse.movie,
+                questions = structuredResponse.questions
             )
         } else {
             UiMessage(

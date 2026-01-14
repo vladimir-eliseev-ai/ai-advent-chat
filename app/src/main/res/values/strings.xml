@@ -1,12 +1,19 @@
 <resources>
-    <string name="app_name">AI Advent Chat</string>
-    <string name="empty_state_message">Начните разговор с AI</string>
-    <string name="input_placeholder">Введите сообщение...</string>
-    <string name="send_button_description">Отправить</string>
-    <string name="thinking_indicator">Сильно думаю ...</string>
+    <string name="app_name">Подборщик фильмов</string>
+    <string name="empty_state_message">Опишите, какой фильм вы хотите посмотреть</string>
+    <string name="input_placeholder">Опишите, какой фильм вы ищете...</string>
+    <string name="send_button_description">Найти фильм</string>
+    <string name="thinking_indicator">Подбираю фильм...</string>
     <string name="question_label">Вопрос:</string>
     <string name="response_label">Ответ:</string>
     <string name="date_label">Дата:</string>
     <string name="tags_label">Теги:</string>
     <string name="links_label">Ссылки:</string>
+    <string name="movie_title_label">Название:</string>
+    <string name="movie_year_label">Год:</string>
+    <string name="movie_genre_label">Жанр:</string>
+    <string name="movie_description_label">Описание:</string>
+    <string name="movie_why_match_label">Почему этот фильм:</string>
+    <string name="recommended_movie_label">Рекомендованный фильм</string>
+    <string name="clarification_questions_label">Уточняющие вопросы:</string>
 </resources>

@@ -22,11 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import eliseev.aiadvent.chat.R
 import eliseev.aiadvent.chat.data.model.MessageRole
+import eliseev.aiadvent.chat.data.model.MovieInfo
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
 
 @Composable
@@ -39,12 +41,15 @@ fun MessageItem(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(
+                horizontal = if (isUser) 16.dp else 0.dp,
+                vertical = 4.dp
+            ),
         contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.8f)
+                .fillMaxWidth(if (isUser) 0.8f else 1f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(
                     color = if (isUser) {
@@ -99,8 +104,16 @@ private fun UserMessage(content: String) {
 
 @Composable
 private fun AssistantMessage(message: UiMessage) {
-    QuestionSummary(summary = message.userQuestionSummary)
-    ResponseBody(body = message.body ?: message.content)
+    // Отображаем фильм, если это рекомендация
+    if (message.type == "movie_recommendation" && message.movie != null) {
+        MovieCard(movie = message.movie)
+    }
+    
+    // Отображаем уточняющие вопросы, если они есть
+    if (message.type == "clarification_needed" && !message.questions.isNullOrEmpty()) {
+        ClarificationQuestions(questions = message.questions)
+    }
+    
     UrlsList(urls = message.urls)
     TagsList(tags = message.tags)
 }
@@ -193,6 +206,155 @@ private fun TagsList(tags: List<String>?) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MovieCard(movie: MovieInfo) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 2.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = stringResource(R.string.recommended_movie_label),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Название фильма
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.movie_title_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = movie.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            
+            // Год и жанр
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Column {
+                    Text(
+                        text = stringResource(R.string.movie_year_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = movie.year.toString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Column {
+                    Text(
+                        text = stringResource(R.string.movie_genre_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = movie.genre,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Описание
+            Text(
+                text = stringResource(R.string.movie_description_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = movie.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // Почему подходит
+            movie.whyMatch?.let { whyMatch ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.movie_why_match_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = whyMatch,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                    fontStyle = FontStyle.Italic
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClarificationQuestions(questions: List<String>) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 2.dp,
+            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = stringResource(R.string.clarification_questions_label),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.secondary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                questions.forEachIndexed { index, question ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "${index + 1}.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = question,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
