@@ -104,18 +104,14 @@ private fun UserMessage(content: String) {
 
 @Composable
 private fun AssistantMessage(message: UiMessage) {
-    // Отображаем фильм, если это рекомендация
-    if (message.type == "movie_recommendation" && message.movie != null) {
-        MovieCard(movie = message.movie)
+    val bodyToShow = (message.body ?: message.content).trim()
+    if (bodyToShow.isNotEmpty()) {
+        Text(
+            text = bodyToShow,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
-    
-    // Отображаем уточняющие вопросы, если они есть
-    if (message.type == "clarification_needed" && !message.questions.isNullOrEmpty()) {
-        ClarificationQuestions(questions = message.questions)
-    }
-    
-    UrlsList(urls = message.urls)
-    TagsList(tags = message.tags)
 }
 
 @Composable

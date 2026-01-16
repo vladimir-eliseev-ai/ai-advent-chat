@@ -72,8 +72,10 @@ fun ChatScreen(
             visibleMessages = visibleMessages,
             isLoading = uiState.isLoading,
             inputText = uiState.inputText,
+            selectedMode = uiState.selectedMode,
             listState = listState,
             onTextChange = viewModel::updateInputText,
+            onModeChange = viewModel::updateAnswerMode,
             onSendClick = viewModel::sendMessage
         )
     }
@@ -136,8 +138,10 @@ private fun ChatContent(
     visibleMessages: List<UiMessage>,
     isLoading: Boolean,
     inputText: String,
+    selectedMode: eliseev.aiadvent.chat.data.model.AnswerMode,
     listState: LazyListState,
     onTextChange: (String) -> Unit,
+    onModeChange: (eliseev.aiadvent.chat.data.model.AnswerMode) -> Unit,
     onSendClick: () -> Unit
 ) {
     Column(
@@ -160,6 +164,8 @@ private fun ChatContent(
         ChatInput(
             text = inputText,
             onTextChange = onTextChange,
+            mode = selectedMode,
+            onModeChange = onModeChange,
             onSendClick = onSendClick,
             enabled = !isLoading,
             modifier = Modifier

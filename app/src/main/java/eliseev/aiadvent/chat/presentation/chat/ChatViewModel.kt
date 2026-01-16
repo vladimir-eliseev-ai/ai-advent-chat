@@ -2,6 +2,7 @@ package eliseev.aiadvent.chat.presentation.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import eliseev.aiadvent.chat.data.model.AnswerMode
 import eliseev.aiadvent.chat.data.model.ChatMessage
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.data.repository.ChatRepository
@@ -21,7 +22,8 @@ data class ChatUiState(
     val messages: List<UiMessage> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val inputText: String = ""
+    val inputText: String = "",
+    val selectedMode: AnswerMode = AnswerMode.BRIEF
 )
 
 class ChatViewModel(
@@ -32,6 +34,7 @@ class ChatViewModel(
     private val _isLoading = MutableStateFlow(false)
     private val _errorMessage = MutableStateFlow<String?>(null)
     private val _inputText = MutableStateFlow("")
+    private val _selectedMode = MutableStateFlow(AnswerMode.BRIEF)
 
     val uiState: StateFlow<ChatUiState> = combine(
         messageStore.messages.map { messages ->
@@ -39,13 +42,15 @@ class ChatViewModel(
         },
         _isLoading,
         _errorMessage,
-        _inputText
-    ) { messages, isLoading, errorMessage, inputText ->
+        _inputText,
+        _selectedMode
+    ) { messages, isLoading, errorMessage, inputText, selectedMode ->
         ChatUiState(
             messages = messages,
             isLoading = isLoading,
             errorMessage = errorMessage,
-            inputText = inputText
+            inputText = inputText,
+            selectedMode = selectedMode
         )
     }.stateIn(
         scope = viewModelScope,
@@ -55,6 +60,10 @@ class ChatViewModel(
 
     fun updateInputText(text: String) {
         _inputText.value = text
+    }
+
+    fun updateAnswerMode(mode: AnswerMode) {
+        _selectedMode.value = mode
     }
 
     fun sendMessage() {
@@ -68,7 +77,10 @@ class ChatViewModel(
         setLoadingState(true)
 
         viewModelScope.launch {
-            val result = repository.sendMessage(messageStore.getMessages())
+            val result = repository.sendMessage(
+                messages = messageStore.getMessages(),
+                mode = _selectedMode.value
+            )
             handleSendMessageResult(result)
         }
     }

@@ -1,5 +1,6 @@
 package eliseev.aiadvent.chat.domain.usecase
 
+import eliseev.aiadvent.chat.data.model.AnswerMode
 import eliseev.aiadvent.chat.data.model.ChatMessage
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.data.repository.ChatRepository
@@ -10,7 +11,8 @@ class SendMessageUseCase(
 ) {
     suspend operator fun invoke(
         currentMessages: List<ChatMessage>,
-        userMessage: String
+        userMessage: String,
+        mode: AnswerMode = AnswerMode.BRIEF
     ): ChatResult<List<ChatMessage>> {
         if (userMessage.isBlank()) {
             return ChatResult.Error("Message cannot be empty")
@@ -23,7 +25,7 @@ class SendMessageUseCase(
         
         val messagesWithUser = currentMessages + newUserMessage
         
-        return repository.sendMessage(messagesWithUser)
+        return repository.sendMessage(messagesWithUser, mode)
     }
 }
 

@@ -3,6 +3,7 @@ package eliseev.aiadvent.chat.data.repository
 import eliseev.aiadvent.chat.data.api.DeepSeekApi
 import eliseev.aiadvent.chat.data.api.dto.ChatRequestDto
 import eliseev.aiadvent.chat.data.api.dto.MessageDto
+import eliseev.aiadvent.chat.data.model.AnswerMode
 import eliseev.aiadvent.chat.data.model.ChatMessage
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.data.model.StructuredResponse
@@ -18,8 +19,14 @@ class ChatRepository(
     private val api: DeepSeekApi,
     private val systemPromptProvider: SystemPromptProvider
 ) {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
+
     suspend fun sendMessage(
-        messages: List<ChatMessage>
+        messages: List<ChatMessage>,
+        mode: AnswerMode
     ): ChatResult<List<ChatMessage>> {
         return try {
             // Добавляем системное сообщение, если его еще нет
@@ -31,10 +38,16 @@ class ChatRepository(
                 listOf(systemMessage) + messages
             }
             
-            val requestMessages = messagesWithSystem.map { message ->
+            val lastUserIndex = messagesWithSystem.indexOfLast { it.role == MessageRole.USER }
+            val requestMessages = messagesWithSystem.mapIndexed { index, message ->
+                val contentForApi = if (index == lastUserIndex) {
+                    addModeTagToUserMessage(message.content, mode)
+                } else {
+                    message.content
+                }
                 MessageDto(
                     role = message.role.name.lowercase(),
-                    content = message.content
+                    content = contentForApi
                 )
             }
             
@@ -50,7 +63,8 @@ class ChatRepository(
             if (assistantMessage != null) {
                 // Пытаемся распарсить JSON ответ
                 val structuredResponse = try {
-                    Json.decodeFromString<StructuredResponse>(assistantMessage.content)
+                    val candidateJson = extractJsonObject(assistantMessage.content) ?: assistantMessage.content
+                    json.decodeFromString<StructuredResponse>(candidateJson)
                 } catch (e: Exception) {
                     // Если не JSON, используем обычный текст
                     Timber.d(e, "Failed to parse JSON response, using plain text")
@@ -89,6 +103,31 @@ class ChatRepository(
             Timber.e(e, "Unexpected error sending message")
             ChatResult.Error("Произошла ошибка: ${e.message ?: "Неизвестная ошибка"}")
         }
+    }
+
+    private fun addModeTagToUserMessage(userMessage: String, mode: AnswerMode): String {
+        val trimmed = userMessage.trim()
+        if (trimmed.isEmpty()) return userMessage
+        val tag = when (mode) {
+            AnswerMode.BRIEF -> "[mode=BRIEF]"
+            AnswerMode.STEP_BY_STEP -> "[mode=STEP_BY_STEP]"
+            AnswerMode.EXPERTS -> "[mode=EXPERTS]"
+        }
+        return "$tag\n$trimmed"
+    }
+
+    private fun extractJsonObject(text: String): String? {
+        val trimmed = text.trim()
+
+        // Частый случай: модель заворачивает JSON в fenced code block
+        val fenceRegex = Regex("```(?:json)?\\s*([\\s\\S]*?)\\s*```", RegexOption.IGNORE_CASE)
+        val fenced = fenceRegex.find(trimmed)?.groupValues?.getOrNull(1)?.trim()
+        val candidate = if (!fenced.isNullOrBlank()) fenced else trimmed
+
+        val start = candidate.indexOf('{')
+        val end = candidate.lastIndexOf('}')
+        if (start == -1 || end == -1 || end <= start) return null
+        return candidate.substring(start, end + 1).trim()
     }
 }
 
