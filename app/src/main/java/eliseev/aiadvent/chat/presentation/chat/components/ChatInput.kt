@@ -23,9 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -54,17 +51,20 @@ fun ChatInput(
         ) {
             OutlinedTextField(
                 value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .onKeyEvent { keyEvent ->
-                        if (keyEvent.key == Key.Enter && enabled && text.isNotBlank()) {
-                            onSendClick()
-                            true
-                        } else {
-                            false
-                        }
-                    },
+                onValueChange = { newText ->
+                    // Проверяем, был ли добавлен символ новой строки в самом конце
+                    val wasNewlineAdded = !text.endsWith("\n") && newText.endsWith("\n")
+                    val isSingleCharAdded = newText.length == text.length + 1
+                    
+                    if (wasNewlineAdded && isSingleCharAdded && enabled && text.isNotBlank()) {
+                        // Enter нажат - отправляем сообщение, не добавляем новую строку
+                        onSendClick()
+                    } else {
+                        // Любое другое изменение текста
+                        onTextChange(newText)
+                    }
+                },
+                modifier = Modifier.weight(1f),
                 enabled = enabled,
                 placeholder = {
                     Text(stringResource(R.string.input_placeholder))

@@ -20,4 +20,17 @@
     <string name="movie_why_match_label">Почему этот фильм:</string>
     <string name="recommended_movie_label">Рекомендованный фильм</string>
     <string name="clarification_questions_label">Уточняющие вопросы:</string>
+    
+    <string name="settings">Настройки</string>
+    <string name="settings_button_description">Открыть настройки</string>
+    <string name="system_prompt">System Prompt</string>
+    <string name="system_prompt_edit_dialog_title">Редактирование System Prompt</string>
+    <string name="system_prompt_edit_dialog_description">Введите дополнительную часть системного промпта, которая будет добавлена к базовому промпту:</string>
+    <string name="system_prompt_edit_hint">Введите пользовательскую часть промпта...</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    
+    <string name="chat">ЧАТ</string>
+    <string name="logic_tasks">ЛОГИЧЕСКИЕ ЗАДАЧИ</string>
+    <string name="back">Назад</string>
 </resources>

@@ -1,4 +1,4 @@
-package eliseev.aiadvent.chat.presentation.chat
+package eliseev.aiadvent.chat.presentation.logictasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class ChatUiState(
+data class LogicTasksUiState(
     val messages: List<UiMessage> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
@@ -27,7 +27,7 @@ data class ChatUiState(
     val selectedMode: AnswerMode = AnswerMode.BRIEF
 )
 
-class ChatViewModel(
+class LogicTasksViewModel(
     private val repository: ChatRepository,
     private val messageStore: ChatMessageStore,
     private val systemPromptProvider: SystemPromptProvider
@@ -38,7 +38,7 @@ class ChatViewModel(
     private val _inputText = MutableStateFlow("")
     private val _selectedMode = MutableStateFlow(AnswerMode.BRIEF)
 
-    val uiState: StateFlow<ChatUiState> = combine(
+    val uiState: StateFlow<LogicTasksUiState> = combine(
         messageStore.messages.map { messages ->
             ChatMessageMapper.toUiMessages(messages)
         },
@@ -47,7 +47,7 @@ class ChatViewModel(
         _inputText,
         _selectedMode
     ) { messages, isLoading, errorMessage, inputText, selectedMode ->
-        ChatUiState(
+        LogicTasksUiState(
             messages = messages,
             isLoading = isLoading,
             errorMessage = errorMessage,
@@ -57,7 +57,7 @@ class ChatViewModel(
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ChatUiState()
+        initialValue = LogicTasksUiState()
     )
 
     fun updateInputText(text: String) {
@@ -134,4 +134,3 @@ class ChatViewModel(
         systemPromptProvider.setUserPromptLogic(prompt)
     }
 }
-

@@ -1,4 +1,4 @@
-package eliseev.aiadvent.chat.presentation.chat
+package eliseev.aiadvent.chat.presentation.simplechat
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,18 +39,19 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import eliseev.aiadvent.chat.R
 import eliseev.aiadvent.chat.data.model.MessageRole
-import eliseev.aiadvent.chat.presentation.chat.components.ChatInput
 import eliseev.aiadvent.chat.presentation.chat.components.MessageItem
 import eliseev.aiadvent.chat.presentation.chat.components.SettingsDialog
 import eliseev.aiadvent.chat.presentation.chat.components.SystemPromptEditDialog
 import eliseev.aiadvent.chat.presentation.chat.components.ThinkingIndicator
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
+import eliseev.aiadvent.chat.presentation.simplechat.components.SimpleChatInput
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(
-    viewModel: ChatViewModel = koinViewModel()
+fun SimpleChatScreen(
+    onBackClick: () -> Unit,
+    viewModel: SimpleChatViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -76,9 +78,10 @@ fun ChatScreen(
 
     Scaffold(
         topBar = { 
-            ChatTopBar(
+            SimpleChatTopBar(
+                onBackClick = onBackClick,
                 onSettingsClick = { showSettingsDialog = true }
-            ) 
+            )
         },
         snackbarHost = { ChatSnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -87,10 +90,8 @@ fun ChatScreen(
             visibleMessages = visibleMessages,
             isLoading = uiState.isLoading,
             inputText = uiState.inputText,
-            selectedMode = uiState.selectedMode,
             listState = listState,
             onTextChange = viewModel::updateInputText,
-            onModeChange = viewModel::updateAnswerMode,
             onSendClick = viewModel::sendMessage
         )
     }
@@ -105,7 +106,7 @@ fun ChatScreen(
     if (showSystemPromptDialog) {
         SystemPromptEditDialog(
             currentUserPrompt = viewModel.getUserPrompt(),
-            modeName = stringResource(R.string.logic_tasks),
+            modeName = stringResource(R.string.chat),
             onDismiss = { showSystemPromptDialog = false },
             onSave = { prompt ->
                 viewModel.saveUserPrompt(prompt)
@@ -149,11 +150,20 @@ private fun ShowErrorSnackbar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatTopBar(
+private fun SimpleChatTopBar(
+    onBackClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     TopAppBar(
-        title = { Text(stringResource(R.string.app_name)) },
+        title = { Text(stringResource(R.string.chat)) },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = stringResource(R.string.back)
+                )
+            }
+        },
         actions = {
             IconButton(onClick = onSettingsClick) {
                 Icon(
@@ -181,10 +191,8 @@ private fun ChatContent(
     visibleMessages: List<UiMessage>,
     isLoading: Boolean,
     inputText: String,
-    selectedMode: eliseev.aiadvent.chat.data.model.AnswerMode,
     listState: LazyListState,
     onTextChange: (String) -> Unit,
-    onModeChange: (eliseev.aiadvent.chat.data.model.AnswerMode) -> Unit,
     onSendClick: () -> Unit
 ) {
     Column(
@@ -204,11 +212,9 @@ private fun ChatContent(
             )
         }
 
-        ChatInput(
+        SimpleChatInput(
             text = inputText,
             onTextChange = onTextChange,
-            mode = selectedMode,
-            onModeChange = onModeChange,
             onSendClick = onSendClick,
             enabled = !isLoading,
             modifier = Modifier
@@ -281,4 +287,3 @@ private fun MessagesList(
         }
     }
 }
-

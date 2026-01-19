@@ -1,4 +1,4 @@
-package eliseev.aiadvent.chat.presentation.chat
+package eliseev.aiadvent.chat.presentation.logictasks
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,8 +49,9 @@ import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(
-    viewModel: ChatViewModel = koinViewModel()
+fun LogicTasksScreen(
+    onBackClick: () -> Unit,
+    viewModel: LogicTasksViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -76,7 +78,8 @@ fun ChatScreen(
 
     Scaffold(
         topBar = { 
-            ChatTopBar(
+            LogicTasksTopBar(
+                onBackClick = onBackClick,
                 onSettingsClick = { showSettingsDialog = true }
             ) 
         },
@@ -149,11 +152,20 @@ private fun ShowErrorSnackbar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatTopBar(
+private fun LogicTasksTopBar(
+    onBackClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     TopAppBar(
-        title = { Text(stringResource(R.string.app_name)) },
+        title = { Text(stringResource(R.string.logic_tasks)) },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = stringResource(R.string.back)
+                )
+            }
+        },
         actions = {
             IconButton(onClick = onSettingsClick) {
                 Icon(
@@ -281,4 +293,3 @@ private fun MessagesList(
         }
     }
 }
-

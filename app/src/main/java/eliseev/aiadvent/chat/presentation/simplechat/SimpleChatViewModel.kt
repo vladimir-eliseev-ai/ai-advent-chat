@@ -1,8 +1,7 @@
-package eliseev.aiadvent.chat.presentation.chat
+package eliseev.aiadvent.chat.presentation.simplechat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eliseev.aiadvent.chat.data.model.AnswerMode
 import eliseev.aiadvent.chat.data.model.ChatMessage
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.data.model.SystemPromptProvider
@@ -12,22 +11,21 @@ import eliseev.aiadvent.chat.domain.model.ChatResult
 import eliseev.aiadvent.chat.presentation.chat.mapper.ChatMessageMapper
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class ChatUiState(
+data class SimpleChatUiState(
     val messages: List<UiMessage> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val inputText: String = "",
-    val selectedMode: AnswerMode = AnswerMode.BRIEF
+    val inputText: String = ""
 )
 
-class ChatViewModel(
+class SimpleChatViewModel(
     private val repository: ChatRepository,
     private val messageStore: ChatMessageStore,
     private val systemPromptProvider: SystemPromptProvider
@@ -36,36 +34,29 @@ class ChatViewModel(
     private val _isLoading = MutableStateFlow(false)
     private val _errorMessage = MutableStateFlow<String?>(null)
     private val _inputText = MutableStateFlow("")
-    private val _selectedMode = MutableStateFlow(AnswerMode.BRIEF)
 
-    val uiState: StateFlow<ChatUiState> = combine(
+    val uiState: StateFlow<SimpleChatUiState> = combine(
         messageStore.messages.map { messages ->
             ChatMessageMapper.toUiMessages(messages)
         },
         _isLoading,
         _errorMessage,
-        _inputText,
-        _selectedMode
-    ) { messages, isLoading, errorMessage, inputText, selectedMode ->
-        ChatUiState(
+        _inputText
+    ) { messages, isLoading, errorMessage, inputText ->
+        SimpleChatUiState(
             messages = messages,
             isLoading = isLoading,
             errorMessage = errorMessage,
-            inputText = inputText,
-            selectedMode = selectedMode
+            inputText = inputText
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ChatUiState()
+        initialValue = SimpleChatUiState()
     )
 
     fun updateInputText(text: String) {
         _inputText.value = text
-    }
-
-    fun updateAnswerMode(mode: AnswerMode) {
-        _selectedMode.value = mode
     }
 
     fun sendMessage() {
@@ -79,9 +70,9 @@ class ChatViewModel(
         setLoadingState(true)
 
         viewModelScope.launch {
-            val result = repository.sendMessage(
+            val result = repository.sendSimpleMessage(
                 messages = messageStore.getMessages(),
-                mode = _selectedMode.value
+                systemPrompt = systemPromptProvider.getSimpleChatPrompt()
             )
             handleSendMessageResult(result)
         }
@@ -112,10 +103,12 @@ class ChatViewModel(
                 messageStore.updateMessages(result.data)
                 setLoadingState(false)
             }
+
             is ChatResult.Error -> {
                 setLoadingState(false)
                 _errorMessage.value = result.message
             }
+
             is ChatResult.Loading -> {
                 // Loading state already set
             }
@@ -125,13 +118,12 @@ class ChatViewModel(
     fun dismissError() {
         _errorMessage.value = null
     }
-    
+
     fun getUserPrompt(): String {
-        return systemPromptProvider.getUserPromptLogic()
+        return systemPromptProvider.getUserPromptSimple()
     }
-    
+
     fun saveUserPrompt(prompt: String) {
-        systemPromptProvider.setUserPromptLogic(prompt)
+        systemPromptProvider.setUserPromptSimple(prompt)
     }
 }
-
