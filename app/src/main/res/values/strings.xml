@@ -33,4 +33,12 @@
     <string name="chat">ЧАТ</string>
     <string name="logic_tasks">ЛОГИЧЕСКИЕ ЗАДАЧИ</string>
     <string name="back">Назад</string>
+    
+    <string name="temperature">Температура</string>
+    <string name="temperature_settings_title">Настройка температуры</string>
+    <string name="temperature_description">Температура влияет на креативность ответов. Низкая (0) - более точные и детерминированные ответы. Высокая (1.2) - более креативные и разнообразные ответы.</string>
+    <string name="temperature_current">Текущее значение</string>
+    <string name="temperature_0">0 (Точный)</string>
+    <string name="temperature_07">0.7 (Сбалансированный)</string>
+    <string name="temperature_12">1.2 (Креативный)</string>
 </resources>

@@ -49,11 +49,13 @@ class ChatRepository(
                 )
             }
             
+            val temperature = systemPromptProvider.getTemperature().toDouble()
             val response = api.chatCompletions(
                 ChatRequestDto(
                     model = "deepseek-chat",
                     messages = requestMessages,
-                    stream = false
+                    stream = false,
+                    temperature = temperature
                 )
             )
             
@@ -136,11 +138,13 @@ class ChatRepository(
                 )
             }
             
+            val temperature = systemPromptProvider.getTemperature().toDouble()
             val response = api.chatCompletions(
                 ChatRequestDto(
                     model = "deepseek-chat",
                     messages = requestMessages,
-                    stream = false
+                    stream = false,
+                    temperature = temperature
                 )
             )
             

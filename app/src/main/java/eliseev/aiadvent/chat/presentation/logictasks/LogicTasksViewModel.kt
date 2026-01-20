@@ -133,4 +133,12 @@ class LogicTasksViewModel(
     fun saveUserPrompt(prompt: String) {
         systemPromptProvider.setUserPromptLogic(prompt)
     }
+    
+    fun getTemperature(): Float {
+        return systemPromptProvider.getTemperature()
+    }
+    
+    fun saveTemperature(temperature: Float) {
+        systemPromptProvider.setTemperature(temperature)
+    }
 }

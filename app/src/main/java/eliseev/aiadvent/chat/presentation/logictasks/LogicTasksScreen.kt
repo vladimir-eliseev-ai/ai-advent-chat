@@ -43,6 +43,7 @@ import eliseev.aiadvent.chat.presentation.chat.components.ChatInput
 import eliseev.aiadvent.chat.presentation.chat.components.MessageItem
 import eliseev.aiadvent.chat.presentation.chat.components.SettingsDialog
 import eliseev.aiadvent.chat.presentation.chat.components.SystemPromptEditDialog
+import eliseev.aiadvent.chat.presentation.chat.components.TemperatureSettingsDialog
 import eliseev.aiadvent.chat.presentation.chat.components.ThinkingIndicator
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
 import org.koin.androidx.compose.koinViewModel
@@ -59,6 +60,7 @@ fun LogicTasksScreen(
     
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showSystemPromptDialog by remember { mutableStateOf(false) }
+    var showTemperatureDialog by remember { mutableStateOf(false) }
 
     val visibleMessages = uiState.messages.filter { 
         it.role != MessageRole.SYSTEM 
@@ -101,7 +103,8 @@ fun LogicTasksScreen(
     if (showSettingsDialog) {
         SettingsDialog(
             onDismiss = { showSettingsDialog = false },
-            onSystemPromptClick = { showSystemPromptDialog = true }
+            onSystemPromptClick = { showSystemPromptDialog = true },
+            onTemperatureClick = { showTemperatureDialog = true }
         )
     }
     
@@ -112,6 +115,16 @@ fun LogicTasksScreen(
             onDismiss = { showSystemPromptDialog = false },
             onSave = { prompt ->
                 viewModel.saveUserPrompt(prompt)
+            }
+        )
+    }
+    
+    if (showTemperatureDialog) {
+        TemperatureSettingsDialog(
+            currentTemperature = viewModel.getTemperature(),
+            onDismiss = { showTemperatureDialog = false },
+            onSave = { temperature ->
+                viewModel.saveTemperature(temperature)
             }
         )
     }

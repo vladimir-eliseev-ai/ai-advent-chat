@@ -16,7 +16,8 @@ import eliseev.aiadvent.chat.R
 @Composable
 fun SettingsDialog(
     onDismiss: () -> Unit,
-    onSystemPromptClick: () -> Unit
+    onSystemPromptClick: () -> Unit,
+    onTemperatureClick: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -37,6 +38,21 @@ fun SettingsDialog(
                 ) {
                     Text(
                         text = stringResource(R.string.system_prompt),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                TextButton(
+                    onClick = {
+                        onTemperatureClick()
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(start = 0.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.temperature),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.fillMaxWidth()
                     )

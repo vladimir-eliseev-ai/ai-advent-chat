@@ -10,5 +10,7 @@ data class ChatRequestDto(
     @SerialName("messages")
     val messages: List<MessageDto>,
     @SerialName("stream")
-    val stream: Boolean = false
+    val stream: Boolean = false,
+    @SerialName("temperature")
+    val temperature: Double
 )

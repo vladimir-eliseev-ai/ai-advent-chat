@@ -15,6 +15,8 @@ class SystemPromptProvider(
         private const val PREFS_NAME = "system_prompt_prefs"
         private const val KEY_USER_PROMPT_LOGIC = "user_prompt_logic"
         private const val KEY_USER_PROMPT_SIMPLE = "user_prompt_simple"
+        private const val KEY_TEMPERATURE = "temperature"
+        private const val DEFAULT_TEMPERATURE = 0.7f
     }
 
     // Методы для логических задач
@@ -94,5 +96,14 @@ class SystemPromptProvider(
     
     fun setUserPromptSimple(prompt: String) {
         prefs.edit().putString(KEY_USER_PROMPT_SIMPLE, prompt.trim()).apply()
+    }
+    
+    // Методы для температуры
+    fun getTemperature(): Float {
+        return prefs.getFloat(KEY_TEMPERATURE, DEFAULT_TEMPERATURE)
+    }
+    
+    fun setTemperature(temperature: Float) {
+        prefs.edit().putFloat(KEY_TEMPERATURE, temperature).apply()
     }
 }

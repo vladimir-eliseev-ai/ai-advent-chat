@@ -126,4 +126,12 @@ class SimpleChatViewModel(
     fun saveUserPrompt(prompt: String) {
         systemPromptProvider.setUserPromptSimple(prompt)
     }
+    
+    fun getTemperature(): Float {
+        return systemPromptProvider.getTemperature()
+    }
+    
+    fun saveTemperature(temperature: Float) {
+        systemPromptProvider.setTemperature(temperature)
+    }
 }
