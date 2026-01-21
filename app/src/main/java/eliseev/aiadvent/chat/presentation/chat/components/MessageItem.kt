@@ -30,6 +30,8 @@ import eliseev.aiadvent.chat.R
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.data.model.MovieInfo
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
+import eliseev.aiadvent.chat.presentation.chat.model.UiMetrics
+import java.util.Locale
 
 @Composable
 fun MessageItem(
@@ -69,6 +71,12 @@ fun MessageItem(
                 UserMessage(content = message.content)
             } else {
                 AssistantMessage(message = message)
+                
+                // Отображаем метрики для ответов ассистента
+                message.metrics?.let { metrics ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MetricsInfo(metrics = metrics)
+                }
             }
         }
     }
@@ -383,6 +391,110 @@ private fun FieldSection(
                 Spacer(modifier = Modifier.height(4.dp))
             }
             content()
+        }
+    }
+}
+
+@Composable
+private fun MetricsInfo(metrics: UiMetrics) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+        tonalElevation = 1.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "📊 Метрики",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${metrics.providerName} • ${metrics.modelName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(6.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Время ответа
+                MetricItem(
+                    label = "Время",
+                    value = formatTime(metrics.responseTimeMs),
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // Токены
+                MetricItem(
+                    label = "Токены",
+                    value = "${metrics.totalTokens}\n(${metrics.promptTokens} + ${metrics.completionTokens})",
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // Стоимость
+                MetricItem(
+                    label = "Стоимость",
+                    value = if (metrics.costUSD > 0) {
+                        String.format(Locale.US, "$%.6f", metrics.costUSD)
+                    } else {
+                        "Бесплатно"
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+private fun formatTime(milliseconds: Long): String {
+    return when {
+        milliseconds < 1000 -> "${milliseconds}мс"
+        milliseconds < 60000 -> String.format(Locale.US, "%.1fс", milliseconds / 1000.0)
+        else -> {
+            val minutes = milliseconds / 60000
+            val seconds = (milliseconds % 60000) / 1000
+            "${minutes}м ${seconds}с"
         }
     }
 }

@@ -2,6 +2,7 @@ package eliseev.aiadvent.chat.presentation.simplechat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import eliseev.aiadvent.chat.data.model.ApiProvider
 import eliseev.aiadvent.chat.data.model.ChatMessage
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.data.model.SystemPromptProvider
@@ -133,5 +134,38 @@ class SimpleChatViewModel(
     
     fun saveTemperature(temperature: Float) {
         systemPromptProvider.setTemperature(temperature)
+    }
+    
+    fun getApiProvider(): ApiProvider {
+        return systemPromptProvider.getApiProvider()
+    }
+    
+    fun getOllamaModel(): String {
+        return systemPromptProvider.getOllamaModel()
+    }
+    
+    fun getDeepSeekModel(): String {
+        return systemPromptProvider.getDeepSeekModel()
+    }
+    
+    fun saveApiSettings(provider: ApiProvider, ollamaModel: String, deepSeekModel: String) {
+        systemPromptProvider.setApiProvider(provider)
+        systemPromptProvider.setOllamaModel(ollamaModel)
+        systemPromptProvider.setDeepSeekModel(deepSeekModel)
+    }
+    
+    fun getCurrentModel(): String {
+        return when (systemPromptProvider.getApiProvider()) {
+            ApiProvider.DEEPSEEK -> systemPromptProvider.getDeepSeekModel()
+            ApiProvider.OLLAMA -> systemPromptProvider.getOllamaModel()
+        }
+    }
+    
+    fun quickSwitchModel(modelName: String) {
+        val provider = systemPromptProvider.getApiProvider()
+        when (provider) {
+            ApiProvider.OLLAMA -> systemPromptProvider.setOllamaModel(modelName)
+            ApiProvider.DEEPSEEK -> systemPromptProvider.setDeepSeekModel(modelName)
+        }
     }
 }

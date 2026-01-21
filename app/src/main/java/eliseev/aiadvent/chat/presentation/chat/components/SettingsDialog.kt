@@ -17,7 +17,8 @@ import eliseev.aiadvent.chat.R
 fun SettingsDialog(
     onDismiss: () -> Unit,
     onSystemPromptClick: () -> Unit,
-    onTemperatureClick: () -> Unit
+    onTemperatureClick: () -> Unit,
+    onApiProviderClick: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -53,6 +54,21 @@ fun SettingsDialog(
                 ) {
                     Text(
                         text = stringResource(R.string.temperature),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                TextButton(
+                    onClick = {
+                        onApiProviderClick()
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(start = 0.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.api_provider),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.fillMaxWidth()
                     )

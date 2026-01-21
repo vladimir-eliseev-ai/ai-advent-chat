@@ -30,9 +30,12 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // API ключ из local.properties
-        val apiKey = localProperties.getProperty("DEEPSEEK_API_KEY", "")
-        buildConfigField("String", "DEEPSEEK_API_KEY", "\"$apiKey\"")
+        // API ключи из local.properties
+        val deepseekApiKey = localProperties.getProperty("DEEPSEEK_API_KEY", "")
+        val ollamaBaseUrl = localProperties.getProperty("OLLAMA_BASE_URL", "http://10.0.2.2:11434/")
+        
+        buildConfigField("String", "DEEPSEEK_API_KEY", "\"$deepseekApiKey\"")
+        buildConfigField("String", "OLLAMA_BASE_URL", "\"$ollamaBaseUrl\"")
     }
 
     buildTypes {

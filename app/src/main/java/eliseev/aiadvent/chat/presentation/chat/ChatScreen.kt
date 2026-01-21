@@ -38,8 +38,10 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import eliseev.aiadvent.chat.R
 import eliseev.aiadvent.chat.data.model.MessageRole
+import eliseev.aiadvent.chat.presentation.chat.components.ApiProviderSettingsDialog
 import eliseev.aiadvent.chat.presentation.chat.components.ChatInput
 import eliseev.aiadvent.chat.presentation.chat.components.MessageItem
+import eliseev.aiadvent.chat.presentation.chat.components.ModelInfoBar
 import eliseev.aiadvent.chat.presentation.chat.components.SettingsDialog
 import eliseev.aiadvent.chat.presentation.chat.components.SystemPromptEditDialog
 import eliseev.aiadvent.chat.presentation.chat.components.TemperatureSettingsDialog
@@ -59,6 +61,7 @@ fun ChatScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showSystemPromptDialog by remember { mutableStateOf(false) }
     var showTemperatureDialog by remember { mutableStateOf(false) }
+    var showApiProviderDialog by remember { mutableStateOf(false) }
 
     val visibleMessages = uiState.messages.filter { 
         it.role != MessageRole.SYSTEM 
@@ -78,9 +81,15 @@ fun ChatScreen(
 
     Scaffold(
         topBar = { 
-            ChatTopBar(
-                onSettingsClick = { showSettingsDialog = true }
-            ) 
+            Column {
+                ChatTopBar(
+                    onSettingsClick = { showSettingsDialog = true }
+                )
+                ModelInfoBar(
+                    currentProvider = viewModel.getApiProvider(),
+                    currentModel = viewModel.getCurrentModel()
+                )
+            }
         },
         snackbarHost = { ChatSnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -101,7 +110,8 @@ fun ChatScreen(
         SettingsDialog(
             onDismiss = { showSettingsDialog = false },
             onSystemPromptClick = { showSystemPromptDialog = true },
-            onTemperatureClick = { showTemperatureDialog = true }
+            onTemperatureClick = { showTemperatureDialog = true },
+            onApiProviderClick = { showApiProviderDialog = true }
         )
     }
     
@@ -122,6 +132,18 @@ fun ChatScreen(
             onDismiss = { showTemperatureDialog = false },
             onSave = { temperature ->
                 viewModel.saveTemperature(temperature)
+            }
+        )
+    }
+    
+    if (showApiProviderDialog) {
+        ApiProviderSettingsDialog(
+            currentProvider = viewModel.getApiProvider(),
+            currentOllamaModel = viewModel.getOllamaModel(),
+            currentDeepSeekModel = viewModel.getDeepSeekModel(),
+            onDismiss = { showApiProviderDialog = false },
+            onSave = { provider, ollamaModel, deepSeekModel ->
+                viewModel.saveApiSettings(provider, ollamaModel, deepSeekModel)
             }
         )
     }

@@ -16,7 +16,8 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val appModule = module {
-    single { BuildConfig.DEEPSEEK_API_KEY }
+    single(named("deepseekApiKey")) { BuildConfig.DEEPSEEK_API_KEY }
+    single(named("ollamaBaseUrl")) { BuildConfig.OLLAMA_BASE_URL }
     
     single {
         SystemPromptProvider(androidContext())
@@ -38,7 +39,7 @@ val appModule = module {
 }
 
 val repositoryModule = module {
-    single { ChatRepository(get(), get()) }
+    single { ChatRepository(get(), get(), get()) }
 }
 
 val useCaseModule = module {

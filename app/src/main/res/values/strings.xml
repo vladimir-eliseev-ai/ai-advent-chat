@@ -41,4 +41,14 @@
     <string name="temperature_0">0 (Точный)</string>
     <string name="temperature_07">0.7 (Сбалансированный)</string>
     <string name="temperature_12">1.2 (Креативный)</string>
+    
+    <string name="api_provider">API провайдер и модель</string>
+    <string name="api_provider_settings">Настройки API провайдера</string>
+    <string name="select_provider">Выберите провайдер:</string>
+    <string name="deepseek_model">Модель DeepSeek</string>
+    <string name="ollama_model">Модель Ollama</string>
+    <string name="model_name">Название модели</string>
+    <string name="deepseek_models_examples">Примеры: deepseek-chat, deepseek-coder, deepseek-reasoner</string>
+    <string name="ollama_models_examples">Примеры: llama3.2:1b, mistral:7b, llama3.1:8b, qwen2.5:7b</string>
+    <string name="ollama_install_hint">Убедитесь, что модель загружена: ollama pull название_модели</string>
 </resources>

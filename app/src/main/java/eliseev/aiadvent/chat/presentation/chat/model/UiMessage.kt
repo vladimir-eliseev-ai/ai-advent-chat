@@ -14,5 +14,16 @@ data class UiMessage(
     val userQuestionSummary: String? = null,
     val type: String? = null, // "movie_recommendation" или "clarification_needed"
     val movie: MovieInfo? = null,
-    val questions: List<String>? = null
+    val questions: List<String>? = null,
+    val metrics: UiMetrics? = null
+)
+
+data class UiMetrics(
+    val responseTimeMs: Long,
+    val promptTokens: Int,
+    val completionTokens: Int,
+    val totalTokens: Int,
+    val costUSD: Double,
+    val modelName: String,
+    val providerName: String
 )

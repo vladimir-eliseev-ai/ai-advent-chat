@@ -3,6 +3,7 @@ package eliseev.aiadvent.chat.presentation.chat.mapper
 import eliseev.aiadvent.chat.data.model.ChatMessage
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
+import eliseev.aiadvent.chat.presentation.chat.model.UiMetrics
 
 object ChatMessageMapper {
     
@@ -30,16 +31,30 @@ object ChatMessageMapper {
                 urls = structuredResponse.urls,
                 type = structuredResponse.type,
                 movie = structuredResponse.movie,
-                questions = structuredResponse.questions
+                questions = structuredResponse.questions,
+                metrics = message.metrics?.let { mapMetrics(it) }
             )
         } else {
             UiMessage(
                 role = message.role,
                 content = message.content,
                 timestamp = message.timestamp,
-                formattedDate = formattedTimestamp
+                formattedDate = formattedTimestamp,
+                metrics = message.metrics?.let { mapMetrics(it) }
             )
         }
+    }
+    
+    private fun mapMetrics(metrics: eliseev.aiadvent.chat.data.model.MessageMetrics): UiMetrics {
+        return UiMetrics(
+            responseTimeMs = metrics.responseTimeMs,
+            promptTokens = metrics.promptTokens,
+            completionTokens = metrics.completionTokens,
+            totalTokens = metrics.totalTokens,
+            costUSD = metrics.costUSD,
+            modelName = metrics.modelName,
+            providerName = metrics.providerName
+        )
     }
     
     fun toUiMessages(messages: List<ChatMessage>): List<UiMessage> {
