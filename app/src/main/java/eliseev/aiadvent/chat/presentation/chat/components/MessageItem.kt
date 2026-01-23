@@ -67,6 +67,12 @@ fun MessageItem(
                 isUser = isUser
             )
             
+            // Индикатор summary для сообщений ассистента
+            if (!isUser && message.isSummary) {
+                SummaryIndicator(originalMessageCount = message.originalMessageCount)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
             if (isUser) {
                 UserMessage(content = message.content)
             } else {
@@ -495,6 +501,39 @@ private fun formatTime(milliseconds: Long): String {
             val minutes = milliseconds / 60000
             val seconds = (milliseconds % 60000) / 1000
             "${minutes}м ${seconds}с"
+        }
+    }
+}
+
+@Composable
+private fun SummaryIndicator(originalMessageCount: Int) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "📦",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Резюме диалога ($originalMessageCount сообщений)",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                fontWeight = FontWeight.Medium,
+                fontStyle = FontStyle.Italic
+            )
         }
     }
 }

@@ -112,7 +112,11 @@ fun SimpleChatScreen(
             onDismiss = { showSettingsDialog = false },
             onSystemPromptClick = { showSystemPromptDialog = true },
             onTemperatureClick = { showTemperatureDialog = true },
-            onApiProviderClick = { showApiProviderDialog = true }
+            onApiProviderClick = { showApiProviderDialog = true },
+            isHistoryCompressionEnabled = viewModel.isHistoryCompressionEnabled(),
+            onHistoryCompressionToggle = { enabled ->
+                viewModel.setHistoryCompressionEnabled(enabled)
+            }
         )
     }
     

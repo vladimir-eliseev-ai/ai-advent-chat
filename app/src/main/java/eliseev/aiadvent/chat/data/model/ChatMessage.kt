@@ -5,7 +5,9 @@ data class ChatMessage(
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),
     val structuredResponse: StructuredResponse? = null,
-    val metrics: MessageMetrics? = null
+    val metrics: MessageMetrics? = null,
+    val isSummary: Boolean = false,
+    val originalMessageCount: Int = 0
 )
 
 data class MessageMetrics(

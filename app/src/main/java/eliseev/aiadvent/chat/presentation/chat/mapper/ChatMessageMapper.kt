@@ -32,7 +32,9 @@ object ChatMessageMapper {
                 type = structuredResponse.type,
                 movie = structuredResponse.movie,
                 questions = structuredResponse.questions,
-                metrics = message.metrics?.let { mapMetrics(it) }
+                metrics = message.metrics?.let { mapMetrics(it) },
+                isSummary = message.isSummary,
+                originalMessageCount = message.originalMessageCount
             )
         } else {
             UiMessage(
@@ -40,7 +42,9 @@ object ChatMessageMapper {
                 content = message.content,
                 timestamp = message.timestamp,
                 formattedDate = formattedTimestamp,
-                metrics = message.metrics?.let { mapMetrics(it) }
+                metrics = message.metrics?.let { mapMetrics(it) },
+                isSummary = message.isSummary,
+                originalMessageCount = message.originalMessageCount
             )
         }
     }

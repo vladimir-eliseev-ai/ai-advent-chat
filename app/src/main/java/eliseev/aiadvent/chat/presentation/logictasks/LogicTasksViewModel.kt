@@ -175,4 +175,12 @@ class LogicTasksViewModel(
             ApiProvider.DEEPSEEK -> systemPromptProvider.setDeepSeekModel(modelName)
         }
     }
+    
+    fun isHistoryCompressionEnabled(): Boolean {
+        return systemPromptProvider.isHistoryCompressionEnabled()
+    }
+    
+    fun setHistoryCompressionEnabled(enabled: Boolean) {
+        systemPromptProvider.setHistoryCompressionEnabled(enabled)
+    }
 }

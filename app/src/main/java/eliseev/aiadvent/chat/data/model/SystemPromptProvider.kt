@@ -19,11 +19,13 @@ class SystemPromptProvider(
         private const val KEY_API_PROVIDER = "api_provider"
         private const val KEY_OLLAMA_MODEL = "ollama_model"
         private const val KEY_DEEPSEEK_MODEL = "deepseek_model"
+        private const val KEY_HISTORY_COMPRESSION_ENABLED = "history_compression_enabled"
         
         private const val DEFAULT_TEMPERATURE = 0.7f
         private const val DEFAULT_API_PROVIDER = "DEEPSEEK"
         private const val DEFAULT_OLLAMA_MODEL = "llama3.2:1b"
         private const val DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
+        private const val DEFAULT_HISTORY_COMPRESSION_ENABLED = true
     }
 
     // Методы для логических задач
@@ -144,5 +146,14 @@ class SystemPromptProvider(
     
     fun setDeepSeekModel(model: String) {
         prefs.edit().putString(KEY_DEEPSEEK_MODEL, model).apply()
+    }
+    
+    // Методы для компрессии истории
+    fun isHistoryCompressionEnabled(): Boolean {
+        return prefs.getBoolean(KEY_HISTORY_COMPRESSION_ENABLED, DEFAULT_HISTORY_COMPRESSION_ENABLED)
+    }
+    
+    fun setHistoryCompressionEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HISTORY_COMPRESSION_ENABLED, enabled).apply()
     }
 }

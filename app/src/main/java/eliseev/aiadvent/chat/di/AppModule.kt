@@ -5,6 +5,7 @@ import eliseev.aiadvent.chat.BuildConfig
 import eliseev.aiadvent.chat.data.model.SystemPromptProvider
 import eliseev.aiadvent.chat.data.repository.ChatRepository
 import eliseev.aiadvent.chat.data.store.ChatMessageStore
+import eliseev.aiadvent.chat.domain.usecase.CompressHistoryUseCase
 import eliseev.aiadvent.chat.domain.usecase.SendMessageUseCase
 import eliseev.aiadvent.chat.presentation.chat.ChatViewModel
 import eliseev.aiadvent.chat.presentation.logictasks.LogicTasksViewModel
@@ -44,6 +45,7 @@ val repositoryModule = module {
 
 val useCaseModule = module {
     single { SendMessageUseCase(get()) }
+    single { CompressHistoryUseCase(get()) }
 }
 
 val viewModelModule = module {

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 data class ChatUiState(
     val messages: List<UiMessage> = emptyList(),
@@ -110,6 +111,10 @@ class ChatViewModel(
     private fun handleSendMessageResult(result: ChatResult<List<ChatMessage>>) {
         when (result) {
             is ChatResult.Success -> {
+                val summaryCount = result.data.count { it.isSummary }
+                if (summaryCount > 0) {
+                    Timber.d("Updating messages with $summaryCount summary messages")
+                }
                 messageStore.updateMessages(result.data)
                 setLoadingState(false)
             }
@@ -174,6 +179,14 @@ class ChatViewModel(
             ApiProvider.OLLAMA -> systemPromptProvider.setOllamaModel(modelName)
             ApiProvider.DEEPSEEK -> systemPromptProvider.setDeepSeekModel(modelName)
         }
+    }
+    
+    fun isHistoryCompressionEnabled(): Boolean {
+        return systemPromptProvider.isHistoryCompressionEnabled()
+    }
+    
+    fun setHistoryCompressionEnabled(enabled: Boolean) {
+        systemPromptProvider.setHistoryCompressionEnabled(enabled)
     }
 }
 

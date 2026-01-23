@@ -51,4 +51,6 @@
     <string name="deepseek_models_examples">Примеры: deepseek-chat, deepseek-coder, deepseek-reasoner</string>
     <string name="ollama_models_examples">Примеры: llama3.2:1b, mistral:7b, llama3.1:8b, qwen2.5:7b</string>
     <string name="ollama_install_hint">Убедитесь, что модель загружена: ollama pull название_модели</string>
+    
+    <string name="history_compression">Сжатие истории диалога</string>
 </resources>
