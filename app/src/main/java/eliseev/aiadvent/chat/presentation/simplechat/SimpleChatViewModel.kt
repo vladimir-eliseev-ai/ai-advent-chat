@@ -3,12 +3,12 @@ package eliseev.aiadvent.chat.presentation.simplechat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eliseev.aiadvent.chat.data.model.ApiProvider
-import eliseev.aiadvent.chat.data.model.ChatMessage
-import eliseev.aiadvent.chat.data.model.MessageRole
-import eliseev.aiadvent.chat.data.model.SystemPromptProvider
-import eliseev.aiadvent.chat.data.repository.ChatRepository
-import eliseev.aiadvent.chat.data.store.ChatMessageStore
 import eliseev.aiadvent.chat.domain.model.ChatResult
+import eliseev.aiadvent.chat.domain.model.UserSettings
+import eliseev.aiadvent.chat.domain.usecase.GetMessagesUseCase
+import eliseev.aiadvent.chat.domain.usecase.GetUserSettingsUseCase
+import eliseev.aiadvent.chat.domain.usecase.SaveUserSettingsUseCase
+import eliseev.aiadvent.chat.domain.usecase.SendSimpleMessageUseCase
 import eliseev.aiadvent.chat.presentation.chat.mapper.ChatMessageMapper
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,32 +23,37 @@ data class SimpleChatUiState(
     val messages: List<UiMessage> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val inputText: String = ""
+    val inputText: String = "",
+    val settings: UserSettings = UserSettings()
 )
 
 class SimpleChatViewModel(
-    private val repository: ChatRepository,
-    private val messageStore: ChatMessageStore,
-    private val systemPromptProvider: SystemPromptProvider
+    private val sendSimpleMessageUseCase: SendSimpleMessageUseCase,
+    private val getMessagesUseCase: GetMessagesUseCase,
+    private val getUserSettingsUseCase: GetUserSettingsUseCase,
+    private val saveUserSettingsUseCase: SaveUserSettingsUseCase
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     private val _errorMessage = MutableStateFlow<String?>(null)
     private val _inputText = MutableStateFlow("")
+    private val _settings = MutableStateFlow(getUserSettingsUseCase.executeForSimple())
 
     val uiState: StateFlow<SimpleChatUiState> = combine(
-        messageStore.messages.map { messages ->
+        getMessagesUseCase.execute().map { messages ->
             ChatMessageMapper.toUiMessages(messages)
         },
         _isLoading,
         _errorMessage,
-        _inputText
-    ) { messages, isLoading, errorMessage, inputText ->
+        _inputText,
+        _settings
+    ) { messages, isLoading, errorMessage, inputText, settings ->
         SimpleChatUiState(
             messages = messages,
             isLoading = isLoading,
             errorMessage = errorMessage,
-            inputText = inputText
+            inputText = inputText,
+            settings = settings
         )
     }.stateIn(
         scope = viewModelScope,
@@ -56,35 +61,88 @@ class SimpleChatViewModel(
         initialValue = SimpleChatUiState()
     )
 
-    fun updateInputText(text: String) {
+    fun onUiEvent(event: SimpleChatUiEvent) {
+        when (event) {
+            is SimpleChatUiEvent.UpdateInputText -> onInputTextUpdated(event.text)
+            is SimpleChatUiEvent.SendMessage -> onSendMessage()
+            is SimpleChatUiEvent.DismissError -> onErrorDismissed()
+            is SimpleChatUiEvent.UpdateSettings -> onSettingsUpdated(event.settings)
+            is SimpleChatUiEvent.UpdateUserPrompt -> onUserPromptUpdated(event.prompt)
+            is SimpleChatUiEvent.UpdateTemperature -> onTemperatureUpdated(event.temperature)
+            is SimpleChatUiEvent.UpdateApiSettings -> onApiSettingsUpdated(event.provider, event.ollamaModel, event.deepSeekModel)
+            is SimpleChatUiEvent.UpdateHistoryCompression -> onHistoryCompressionUpdated(event.enabled)
+            is SimpleChatUiEvent.QuickSwitchModel -> onModelQuickSwitched(event.modelName)
+        }
+    }
+
+    private fun onInputTextUpdated(text: String) {
         _inputText.value = text
     }
 
-    fun sendMessage() {
+    private fun onSendMessage() {
         val messageText = _inputText.value.trim()
         if (messageText.isBlank() || _isLoading.value) {
             return
         }
 
-        addUserMessage(messageText)
         clearInput()
         setLoadingState(true)
 
         viewModelScope.launch {
-            val result = repository.sendSimpleMessage(
-                messages = messageStore.getMessages(),
-                systemPrompt = systemPromptProvider.getSimpleChatPrompt()
+            val result = sendSimpleMessageUseCase.execute(
+                userMessage = messageText
             )
-            handleSendMessageResult(result)
+
+            when (result) {
+                is ChatResult.Success -> {
+                    setLoadingState(false)
+                }
+
+                is ChatResult.Error -> {
+                    setLoadingState(false)
+                    _errorMessage.value = result.message
+                }
+
+                is ChatResult.Loading -> {
+                    // Loading state already set
+                }
+            }
         }
     }
 
-    private fun addUserMessage(text: String) {
-        val userMessage = ChatMessage(
-            role = MessageRole.USER,
-            content = text
-        )
-        messageStore.addMessage(userMessage)
+    private fun onErrorDismissed() {
+        _errorMessage.value = null
+    }
+
+    private fun onSettingsUpdated(settings: UserSettings) {
+        saveUserSettingsUseCase.executeForSimple(settings)
+        _settings.value = getUserSettingsUseCase.executeForSimple()
+    }
+
+    private fun onUserPromptUpdated(prompt: String) {
+        saveUserSettingsUseCase.updateUserPromptForSimple(prompt)
+        _settings.value = getUserSettingsUseCase.executeForSimple()
+    }
+
+    private fun onTemperatureUpdated(temperature: Float) {
+        saveUserSettingsUseCase.updateTemperature(temperature)
+        _settings.value = getUserSettingsUseCase.executeForSimple()
+    }
+
+    private fun onApiSettingsUpdated(provider: ApiProvider, ollamaModel: String, deepSeekModel: String) {
+        saveUserSettingsUseCase.updateApiSettings(provider, ollamaModel, deepSeekModel)
+        _settings.value = getUserSettingsUseCase.executeForSimple()
+    }
+
+    private fun onHistoryCompressionUpdated(enabled: Boolean) {
+        saveUserSettingsUseCase.updateHistoryCompression(enabled)
+        _settings.value = getUserSettingsUseCase.executeForSimple()
+    }
+
+    private fun onModelQuickSwitched(modelName: String) {
+        val currentProvider = _settings.value.apiProvider
+        saveUserSettingsUseCase.quickSwitchModel(modelName, currentProvider)
+        _settings.value = getUserSettingsUseCase.executeForSimple()
     }
 
     private fun clearInput() {
@@ -96,84 +154,5 @@ class SimpleChatViewModel(
         if (isLoading) {
             _errorMessage.value = null
         }
-    }
-
-    private fun handleSendMessageResult(result: ChatResult<List<ChatMessage>>) {
-        when (result) {
-            is ChatResult.Success -> {
-                messageStore.updateMessages(result.data)
-                setLoadingState(false)
-            }
-
-            is ChatResult.Error -> {
-                setLoadingState(false)
-                _errorMessage.value = result.message
-            }
-
-            is ChatResult.Loading -> {
-                // Loading state already set
-            }
-        }
-    }
-
-    fun dismissError() {
-        _errorMessage.value = null
-    }
-
-    fun getUserPrompt(): String {
-        return systemPromptProvider.getUserPromptSimple()
-    }
-
-    fun saveUserPrompt(prompt: String) {
-        systemPromptProvider.setUserPromptSimple(prompt)
-    }
-    
-    fun getTemperature(): Float {
-        return systemPromptProvider.getTemperature()
-    }
-    
-    fun saveTemperature(temperature: Float) {
-        systemPromptProvider.setTemperature(temperature)
-    }
-    
-    fun getApiProvider(): ApiProvider {
-        return systemPromptProvider.getApiProvider()
-    }
-    
-    fun getOllamaModel(): String {
-        return systemPromptProvider.getOllamaModel()
-    }
-    
-    fun getDeepSeekModel(): String {
-        return systemPromptProvider.getDeepSeekModel()
-    }
-    
-    fun saveApiSettings(provider: ApiProvider, ollamaModel: String, deepSeekModel: String) {
-        systemPromptProvider.setApiProvider(provider)
-        systemPromptProvider.setOllamaModel(ollamaModel)
-        systemPromptProvider.setDeepSeekModel(deepSeekModel)
-    }
-    
-    fun getCurrentModel(): String {
-        return when (systemPromptProvider.getApiProvider()) {
-            ApiProvider.DEEPSEEK -> systemPromptProvider.getDeepSeekModel()
-            ApiProvider.OLLAMA -> systemPromptProvider.getOllamaModel()
-        }
-    }
-    
-    fun quickSwitchModel(modelName: String) {
-        val provider = systemPromptProvider.getApiProvider()
-        when (provider) {
-            ApiProvider.OLLAMA -> systemPromptProvider.setOllamaModel(modelName)
-            ApiProvider.DEEPSEEK -> systemPromptProvider.setDeepSeekModel(modelName)
-        }
-    }
-    
-    fun isHistoryCompressionEnabled(): Boolean {
-        return systemPromptProvider.isHistoryCompressionEnabled()
-    }
-    
-    fun setHistoryCompressionEnabled(enabled: Boolean) {
-        systemPromptProvider.setHistoryCompressionEnabled(enabled)
     }
 }

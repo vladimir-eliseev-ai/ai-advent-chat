@@ -78,7 +78,7 @@ fun SimpleChatScreen(
     ShowErrorSnackbar(
         errorMessage = uiState.errorMessage,
         snackbarHostState = snackbarHostState,
-        onDismiss = viewModel::dismissError
+        onDismiss = { viewModel.onUiEvent(SimpleChatUiEvent.DismissError) }
     )
 
     Scaffold(
@@ -89,8 +89,8 @@ fun SimpleChatScreen(
                     onSettingsClick = { showSettingsDialog = true }
                 )
                 ModelInfoBar(
-                    currentProvider = viewModel.getApiProvider(),
-                    currentModel = viewModel.getCurrentModel()
+                    currentProvider = uiState.settings.apiProvider,
+                    currentModel = uiState.settings.currentModel
                 )
             }
         },
@@ -102,8 +102,8 @@ fun SimpleChatScreen(
             isLoading = uiState.isLoading,
             inputText = uiState.inputText,
             listState = listState,
-            onTextChange = viewModel::updateInputText,
-            onSendClick = viewModel::sendMessage
+            onTextChange = { viewModel.onUiEvent(SimpleChatUiEvent.UpdateInputText(it)) },
+            onSendClick = { viewModel.onUiEvent(SimpleChatUiEvent.SendMessage) }
         )
     }
     
@@ -113,42 +113,42 @@ fun SimpleChatScreen(
             onSystemPromptClick = { showSystemPromptDialog = true },
             onTemperatureClick = { showTemperatureDialog = true },
             onApiProviderClick = { showApiProviderDialog = true },
-            isHistoryCompressionEnabled = viewModel.isHistoryCompressionEnabled(),
+            isHistoryCompressionEnabled = uiState.settings.isHistoryCompressionEnabled,
             onHistoryCompressionToggle = { enabled ->
-                viewModel.setHistoryCompressionEnabled(enabled)
+                viewModel.onUiEvent(SimpleChatUiEvent.UpdateHistoryCompression(enabled))
             }
         )
     }
     
     if (showSystemPromptDialog) {
         SystemPromptEditDialog(
-            currentUserPrompt = viewModel.getUserPrompt(),
+            currentUserPrompt = uiState.settings.userPrompt,
             modeName = stringResource(R.string.chat),
             onDismiss = { showSystemPromptDialog = false },
             onSave = { prompt ->
-                viewModel.saveUserPrompt(prompt)
+                viewModel.onUiEvent(SimpleChatUiEvent.UpdateUserPrompt(prompt))
             }
         )
     }
     
     if (showTemperatureDialog) {
         TemperatureSettingsDialog(
-            currentTemperature = viewModel.getTemperature(),
+            currentTemperature = uiState.settings.temperature,
             onDismiss = { showTemperatureDialog = false },
             onSave = { temperature ->
-                viewModel.saveTemperature(temperature)
+                viewModel.onUiEvent(SimpleChatUiEvent.UpdateTemperature(temperature))
             }
         )
     }
     
     if (showApiProviderDialog) {
         ApiProviderSettingsDialog(
-            currentProvider = viewModel.getApiProvider(),
-            currentOllamaModel = viewModel.getOllamaModel(),
-            currentDeepSeekModel = viewModel.getDeepSeekModel(),
+            currentProvider = uiState.settings.apiProvider,
+            currentOllamaModel = uiState.settings.ollamaModel,
+            currentDeepSeekModel = uiState.settings.deepSeekModel,
             onDismiss = { showApiProviderDialog = false },
             onSave = { provider, ollamaModel, deepSeekModel ->
-                viewModel.saveApiSettings(provider, ollamaModel, deepSeekModel)
+                viewModel.onUiEvent(SimpleChatUiEvent.UpdateApiSettings(provider, ollamaModel, deepSeekModel))
             }
         )
     }

@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import eliseev.aiadvent.chat.R
+import eliseev.aiadvent.chat.data.model.AnswerMode
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.presentation.chat.components.ApiProviderSettingsDialog
 import eliseev.aiadvent.chat.presentation.chat.components.ChatInput
@@ -76,7 +77,7 @@ fun ChatScreen(
     ShowErrorSnackbar(
         errorMessage = uiState.errorMessage,
         snackbarHostState = snackbarHostState,
-        onDismiss = viewModel::dismissError
+        onDismiss = { viewModel.onUiEvent(ChatUiEvent.DismissError) }
     )
 
     Scaffold(
@@ -86,8 +87,8 @@ fun ChatScreen(
                     onSettingsClick = { showSettingsDialog = true }
                 )
                 ModelInfoBar(
-                    currentProvider = viewModel.getApiProvider(),
-                    currentModel = viewModel.getCurrentModel()
+                    currentProvider = uiState.settings.apiProvider,
+                    currentModel = uiState.settings.currentModel
                 )
             }
         },
@@ -100,9 +101,9 @@ fun ChatScreen(
             inputText = uiState.inputText,
             selectedMode = uiState.selectedMode,
             listState = listState,
-            onTextChange = viewModel::updateInputText,
-            onModeChange = viewModel::updateAnswerMode,
-            onSendClick = viewModel::sendMessage
+            onTextChange = { viewModel.onUiEvent(ChatUiEvent.UpdateInputText(it)) },
+            onModeChange = { viewModel.onUiEvent(ChatUiEvent.UpdateAnswerMode(it)) },
+            onSendClick = { viewModel.onUiEvent(ChatUiEvent.SendMessage) }
         )
     }
     
@@ -112,42 +113,42 @@ fun ChatScreen(
             onSystemPromptClick = { showSystemPromptDialog = true },
             onTemperatureClick = { showTemperatureDialog = true },
             onApiProviderClick = { showApiProviderDialog = true },
-            isHistoryCompressionEnabled = viewModel.isHistoryCompressionEnabled(),
+            isHistoryCompressionEnabled = uiState.settings.isHistoryCompressionEnabled,
             onHistoryCompressionToggle = { enabled ->
-                viewModel.setHistoryCompressionEnabled(enabled)
+                viewModel.onUiEvent(ChatUiEvent.UpdateHistoryCompression(enabled))
             }
         )
     }
     
     if (showSystemPromptDialog) {
         SystemPromptEditDialog(
-            currentUserPrompt = viewModel.getUserPrompt(),
+            currentUserPrompt = uiState.settings.userPrompt,
             modeName = stringResource(R.string.logic_tasks),
             onDismiss = { showSystemPromptDialog = false },
             onSave = { prompt ->
-                viewModel.saveUserPrompt(prompt)
+                viewModel.onUiEvent(ChatUiEvent.UpdateUserPrompt(prompt))
             }
         )
     }
     
     if (showTemperatureDialog) {
         TemperatureSettingsDialog(
-            currentTemperature = viewModel.getTemperature(),
+            currentTemperature = uiState.settings.temperature,
             onDismiss = { showTemperatureDialog = false },
             onSave = { temperature ->
-                viewModel.saveTemperature(temperature)
+                viewModel.onUiEvent(ChatUiEvent.UpdateTemperature(temperature))
             }
         )
     }
     
     if (showApiProviderDialog) {
         ApiProviderSettingsDialog(
-            currentProvider = viewModel.getApiProvider(),
-            currentOllamaModel = viewModel.getOllamaModel(),
-            currentDeepSeekModel = viewModel.getDeepSeekModel(),
+            currentProvider = uiState.settings.apiProvider,
+            currentOllamaModel = uiState.settings.ollamaModel,
+            currentDeepSeekModel = uiState.settings.deepSeekModel,
             onDismiss = { showApiProviderDialog = false },
             onSave = { provider, ollamaModel, deepSeekModel ->
-                viewModel.saveApiSettings(provider, ollamaModel, deepSeekModel)
+                viewModel.onUiEvent(ChatUiEvent.UpdateApiSettings(provider, ollamaModel, deepSeekModel))
             }
         )
     }
@@ -220,10 +221,10 @@ private fun ChatContent(
     visibleMessages: List<UiMessage>,
     isLoading: Boolean,
     inputText: String,
-    selectedMode: eliseev.aiadvent.chat.data.model.AnswerMode,
+    selectedMode: AnswerMode,
     listState: LazyListState,
     onTextChange: (String) -> Unit,
-    onModeChange: (eliseev.aiadvent.chat.data.model.AnswerMode) -> Unit,
+    onModeChange: (AnswerMode) -> Unit,
     onSendClick: () -> Unit
 ) {
     Column(

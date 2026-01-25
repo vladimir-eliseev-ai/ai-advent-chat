@@ -1,6 +1,7 @@
 package eliseev.aiadvent.chat.presentation.chat.mapper
 
 import eliseev.aiadvent.chat.data.model.ChatMessage
+import eliseev.aiadvent.chat.data.model.MessageMetrics
 import eliseev.aiadvent.chat.data.model.MessageRole
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
 import eliseev.aiadvent.chat.presentation.chat.model.UiMetrics
@@ -49,7 +50,7 @@ object ChatMessageMapper {
         }
     }
     
-    private fun mapMetrics(metrics: eliseev.aiadvent.chat.data.model.MessageMetrics): UiMetrics {
+    private fun mapMetrics(metrics: MessageMetrics): UiMetrics {
         return UiMetrics(
             responseTimeMs = metrics.responseTimeMs,
             promptTokens = metrics.promptTokens,

@@ -4,18 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eliseev.aiadvent.chat.data.model.AnswerMode
 import eliseev.aiadvent.chat.data.model.ApiProvider
-import eliseev.aiadvent.chat.data.model.ChatMessage
-import eliseev.aiadvent.chat.data.model.MessageRole
-import eliseev.aiadvent.chat.data.model.SystemPromptProvider
-import eliseev.aiadvent.chat.data.repository.ChatRepository
-import eliseev.aiadvent.chat.data.store.ChatMessageStore
 import eliseev.aiadvent.chat.domain.model.ChatResult
+import eliseev.aiadvent.chat.domain.model.UserSettings
+import eliseev.aiadvent.chat.domain.usecase.GetMessagesUseCase
+import eliseev.aiadvent.chat.domain.usecase.GetUserSettingsUseCase
+import eliseev.aiadvent.chat.domain.usecase.SaveUserSettingsUseCase
+import eliseev.aiadvent.chat.domain.usecase.SendMessageUseCase
 import eliseev.aiadvent.chat.presentation.chat.mapper.ChatMessageMapper
 import eliseev.aiadvent.chat.presentation.chat.model.UiMessage
+import eliseev.aiadvent.chat.data.utils.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -26,35 +26,40 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val inputText: String = "",
-    val selectedMode: AnswerMode = AnswerMode.BRIEF
+    val selectedMode: AnswerMode = AnswerMode.BRIEF,
+    val settings: UserSettings = UserSettings()
 )
 
 class ChatViewModel(
-    private val repository: ChatRepository,
-    private val messageStore: ChatMessageStore,
-    private val systemPromptProvider: SystemPromptProvider
+    private val sendMessageUseCase: SendMessageUseCase,
+    private val getMessagesUseCase: GetMessagesUseCase,
+    private val getUserSettingsUseCase: GetUserSettingsUseCase,
+    private val saveUserSettingsUseCase: SaveUserSettingsUseCase
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     private val _errorMessage = MutableStateFlow<String?>(null)
     private val _inputText = MutableStateFlow("")
     private val _selectedMode = MutableStateFlow(AnswerMode.BRIEF)
+    private val _settings = MutableStateFlow(getUserSettingsUseCase.executeForLogic())
 
     val uiState: StateFlow<ChatUiState> = combine(
-        messageStore.messages.map { messages ->
+        getMessagesUseCase.execute().map { messages ->
             ChatMessageMapper.toUiMessages(messages)
         },
         _isLoading,
         _errorMessage,
         _inputText,
-        _selectedMode
-    ) { messages, isLoading, errorMessage, inputText, selectedMode ->
+        _selectedMode,
+        _settings
+    ) { messages, isLoading, errorMessage, inputText, selectedMode, settings ->
         ChatUiState(
             messages = messages,
             isLoading = isLoading,
             errorMessage = errorMessage,
             inputText = inputText,
-            selectedMode = selectedMode
+            selectedMode = selectedMode,
+            settings = settings
         )
     }.stateIn(
         scope = viewModelScope,
@@ -62,39 +67,80 @@ class ChatViewModel(
         initialValue = ChatUiState()
     )
 
-    fun updateInputText(text: String) {
+    fun onUiEvent(event: ChatUiEvent) {
+        when (event) {
+            is ChatUiEvent.UpdateInputText -> onInputTextUpdated(event.text)
+            is ChatUiEvent.UpdateAnswerMode -> onAnswerModeUpdated(event.mode)
+            is ChatUiEvent.SendMessage -> onSendMessage()
+            is ChatUiEvent.DismissError -> onErrorDismissed()
+            is ChatUiEvent.UpdateSettings -> onSettingsUpdated(event.settings)
+            is ChatUiEvent.UpdateUserPrompt -> onUserPromptUpdated(event.prompt)
+            is ChatUiEvent.UpdateTemperature -> onTemperatureUpdated(event.temperature)
+            is ChatUiEvent.UpdateApiSettings -> onApiSettingsUpdated(event.provider, event.ollamaModel, event.deepSeekModel)
+            is ChatUiEvent.UpdateHistoryCompression -> onHistoryCompressionUpdated(event.enabled)
+            is ChatUiEvent.QuickSwitchModel -> onModelQuickSwitched(event.modelName)
+        }
+    }
+
+    private fun onInputTextUpdated(text: String) {
         _inputText.value = text
     }
 
-    fun updateAnswerMode(mode: AnswerMode) {
+    private fun onAnswerModeUpdated(mode: AnswerMode) {
         _selectedMode.value = mode
     }
 
-    fun sendMessage() {
+    private fun onSendMessage() {
         val messageText = _inputText.value.trim()
         if (messageText.isBlank() || _isLoading.value) {
             return
         }
 
-        addUserMessage(messageText)
         clearInput()
         setLoadingState(true)
 
         viewModelScope.launch {
-            val result = repository.sendMessage(
-                messages = messageStore.getMessages(),
+            val result = sendMessageUseCase.execute(
+                userMessage = messageText,
                 mode = _selectedMode.value
             )
             handleSendMessageResult(result)
         }
     }
 
-    private fun addUserMessage(text: String) {
-        val userMessage = ChatMessage(
-            role = MessageRole.USER,
-            content = text
-        )
-        messageStore.addMessage(userMessage)
+    private fun onErrorDismissed() {
+        _errorMessage.value = null
+    }
+
+    private fun onSettingsUpdated(settings: UserSettings) {
+        saveUserSettingsUseCase.executeForLogic(settings)
+        _settings.value = getUserSettingsUseCase.executeForLogic()
+    }
+
+    private fun onUserPromptUpdated(prompt: String) {
+        saveUserSettingsUseCase.updateUserPromptForLogic(prompt)
+        _settings.value = getUserSettingsUseCase.executeForLogic()
+    }
+
+    private fun onTemperatureUpdated(temperature: Float) {
+        saveUserSettingsUseCase.updateTemperature(temperature)
+        _settings.value = getUserSettingsUseCase.executeForLogic()
+    }
+
+    private fun onApiSettingsUpdated(provider: ApiProvider, ollamaModel: String, deepSeekModel: String) {
+        saveUserSettingsUseCase.updateApiSettings(provider, ollamaModel, deepSeekModel)
+        _settings.value = getUserSettingsUseCase.executeForLogic()
+    }
+
+    private fun onHistoryCompressionUpdated(enabled: Boolean) {
+        saveUserSettingsUseCase.updateHistoryCompression(enabled)
+        _settings.value = getUserSettingsUseCase.executeForLogic()
+    }
+
+    private fun onModelQuickSwitched(modelName: String) {
+        val currentProvider = _settings.value.apiProvider
+        saveUserSettingsUseCase.quickSwitchModel(modelName, currentProvider)
+        _settings.value = getUserSettingsUseCase.executeForLogic()
     }
 
     private fun clearInput() {
@@ -108,14 +154,9 @@ class ChatViewModel(
         }
     }
 
-    private fun handleSendMessageResult(result: ChatResult<List<ChatMessage>>) {
+    private fun handleSendMessageResult(result: ChatResult<Unit>) {
         when (result) {
             is ChatResult.Success -> {
-                val summaryCount = result.data.count { it.isSummary }
-                if (summaryCount > 0) {
-                    Timber.d("Updating messages with $summaryCount summary messages")
-                }
-                messageStore.updateMessages(result.data)
                 setLoadingState(false)
             }
             is ChatResult.Error -> {
@@ -126,67 +167,6 @@ class ChatViewModel(
                 // Loading state already set
             }
         }
-    }
-
-    fun dismissError() {
-        _errorMessage.value = null
-    }
-    
-    fun getUserPrompt(): String {
-        return systemPromptProvider.getUserPromptLogic()
-    }
-    
-    fun saveUserPrompt(prompt: String) {
-        systemPromptProvider.setUserPromptLogic(prompt)
-    }
-    
-    fun getTemperature(): Float {
-        return systemPromptProvider.getTemperature()
-    }
-    
-    fun saveTemperature(temperature: Float) {
-        systemPromptProvider.setTemperature(temperature)
-    }
-    
-    fun getApiProvider(): ApiProvider {
-        return systemPromptProvider.getApiProvider()
-    }
-    
-    fun getOllamaModel(): String {
-        return systemPromptProvider.getOllamaModel()
-    }
-    
-    fun getDeepSeekModel(): String {
-        return systemPromptProvider.getDeepSeekModel()
-    }
-    
-    fun saveApiSettings(provider: ApiProvider, ollamaModel: String, deepSeekModel: String) {
-        systemPromptProvider.setApiProvider(provider)
-        systemPromptProvider.setOllamaModel(ollamaModel)
-        systemPromptProvider.setDeepSeekModel(deepSeekModel)
-    }
-    
-    fun getCurrentModel(): String {
-        return when (systemPromptProvider.getApiProvider()) {
-            ApiProvider.DEEPSEEK -> systemPromptProvider.getDeepSeekModel()
-            ApiProvider.OLLAMA -> systemPromptProvider.getOllamaModel()
-        }
-    }
-    
-    fun quickSwitchModel(modelName: String) {
-        val provider = systemPromptProvider.getApiProvider()
-        when (provider) {
-            ApiProvider.OLLAMA -> systemPromptProvider.setOllamaModel(modelName)
-            ApiProvider.DEEPSEEK -> systemPromptProvider.setDeepSeekModel(modelName)
-        }
-    }
-    
-    fun isHistoryCompressionEnabled(): Boolean {
-        return systemPromptProvider.isHistoryCompressionEnabled()
-    }
-    
-    fun setHistoryCompressionEnabled(enabled: Boolean) {
-        systemPromptProvider.setHistoryCompressionEnabled(enabled)
     }
 }
 
