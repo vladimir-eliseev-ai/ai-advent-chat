@@ -28,70 +28,82 @@ class HistoryCompressionService(
         
         Timber.d("compressHistoryIfNeeded: compression enabled=$isCompressionEnabled, messages count=${messages.size}")
         
-        // Фильтруем только USER и ASSISTANT сообщения (без SYSTEM)
-        val conversationMessages = messages.filter { 
-            it.role != MessageRole.SYSTEM 
-        }
-        
-        Timber.d("compressHistoryIfNeeded: total messages=${messages.size}, conversation messages=${conversationMessages.size}")
-        
-        // Находим последний summary (если есть)
+        // Находим последний summary (если есть) в оригинальном списке
         val lastSummaryIndex = messages.indexOfLast { it.isSummary }
         
-        // Определяем сообщения после последнего summary (или все, если summary нет)
-        val messagesAfterSummary = if (lastSummaryIndex >= 0) {
-            messages.subList(lastSummaryIndex + 1, messages.size)
-                .filter { it.role != MessageRole.SYSTEM }
+        // Определяем диапазон сообщений после последнего summary (или все, если summary нет)
+        val startSearchIndex = if (lastSummaryIndex >= 0) {
+            lastSummaryIndex + 1
         } else {
-            conversationMessages
+            0
         }
         
-        Timber.d("Messages after last summary: ${messagesAfterSummary.size}")
+        // Находим последнее сообщение пользователя в оригинальном списке (после summary, если есть)
+        val lastUserMessageIndex = messages.indexOfLast { 
+            it.role == MessageRole.USER && 
+            messages.indexOf(it) >= startSearchIndex
+        }
         
-        // Если сообщений после summary меньше порога, возвращаем как есть
-        if (messagesAfterSummary.size < COMPRESSION_THRESHOLD) {
-            Timber.d("Not enough messages for compression: ${messagesAfterSummary.size} < $COMPRESSION_THRESHOLD")
+        if (lastUserMessageIndex < startSearchIndex) {
+            Timber.d("No user messages found after summary, skipping compression")
             return messages
         }
         
-        Timber.d("Compression needed: ${messagesAfterSummary.size} messages after summary, threshold=$COMPRESSION_THRESHOLD")
+        // Собираем индексы USER и ASSISTANT сообщений между startSearchIndex и lastUserMessageIndex
+        val conversationMessageIndices = mutableListOf<Int>()
+        for (i in startSearchIndex until lastUserMessageIndex) {
+            if (messages[i].role != MessageRole.SYSTEM) {
+                conversationMessageIndices.add(i)
+            }
+        }
         
-        // Берем последние COMPRESSION_THRESHOLD сообщений для сжатия
-        val messagesToCompress = messagesAfterSummary.takeLast(COMPRESSION_THRESHOLD)
-        
-        // Если сообщений для сжатия меньше порога, не сжимаем
-        if (messagesToCompress.size < COMPRESSION_THRESHOLD) {
-            Timber.d("Not enough messages to compress: ${messagesToCompress.size} < $COMPRESSION_THRESHOLD")
+        // Если сообщений для сжатия меньше порога, возвращаем как есть
+        if (conversationMessageIndices.size < COMPRESSION_THRESHOLD) {
+            Timber.d("Not enough messages for compression: ${conversationMessageIndices.size} < $COMPRESSION_THRESHOLD")
             return messages
         }
-
-        // Находим индексы сообщений для сжатия в оригинальном списке
-        val firstMessageToCompress = messagesToCompress.first()
-        val startIndex = messages.indexOfFirst { 
-            it.role == firstMessageToCompress.role && 
-            it.content == firstMessageToCompress.content &&
-            it.timestamp == firstMessageToCompress.timestamp
-        }
-
-        if (startIndex < 0) {
-            Timber.w("Could not find start index for compression")
-            return messages
-        }
+        
+        Timber.d("Compression needed: ${conversationMessageIndices.size} messages before last user message, threshold=$COMPRESSION_THRESHOLD")
+        
+        // Берем последние COMPRESSION_THRESHOLD индексов для сжатия
+        val indicesToCompress = conversationMessageIndices.takeLast(COMPRESSION_THRESHOLD)
+        val startIndex = indicesToCompress.first()
+        val endIndex = indicesToCompress.last() + 1
+        
+        // Получаем сообщения для сжатия по индексам
+        val messagesToCompressFinal = indicesToCompress.map { messages[it] }
         
         // Создаем summary через API
-        Timber.d("Compressing ${messagesToCompress.size} messages into summary")
-        val summaryResult = createSummary(messagesToCompress)
+        Timber.d("Compressing ${messagesToCompressFinal.size} messages into summary")
+        val summaryResult = createSummary(messagesToCompressFinal)
         
         return when (summaryResult) {
             is ChatResult.Success -> {
                 val summaryMessage = summaryResult.data
-                Timber.d("Summary created successfully, replacing ${messagesToCompress.size} messages")
+                Timber.d("Summary created successfully, replacing ${messagesToCompressFinal.size} messages")
                 Timber.d("Summary message: isSummary=${summaryMessage.isSummary}, originalCount=${summaryMessage.originalMessageCount}, content=${summaryMessage.content.take(100)}...")
-                // Заменяем сжатые сообщения на summary
-                val messagesBefore = messages.subList(0, startIndex).toList()
-                val messagesAfter = messages.subList(startIndex + messagesToCompress.size, messages.size).toList()
-                val resultMessages = messagesBefore + summaryMessage + messagesAfter
+                
+                // Создаем новый список, удаляя только сообщения по индексам из indicesToCompress
+                // SYSTEM сообщения между ними сохраняем
+                val resultMessages = mutableListOf<ChatMessage>()
+                val indicesToCompressSet = indicesToCompress.toSet()
+                var summaryAdded = false
+                
+                for (i in messages.indices) {
+                    if (i in indicesToCompressSet) {
+                        // Пропускаем сжимаемые сообщения, заменяем первое на summary
+                        if (!summaryAdded) {
+                            resultMessages.add(summaryMessage)
+                            summaryAdded = true
+                        }
+                    } else {
+                        // Все остальные сообщения (включая SYSTEM и последнее сообщение пользователя) сохраняем
+                        resultMessages.add(messages[i])
+                    }
+                }
+                
                 Timber.d("Result messages count: ${resultMessages.size}, summary messages count: ${resultMessages.count { it.isSummary }}")
+                Timber.d("Last message in result: role=${resultMessages.lastOrNull()?.role}, content=${resultMessages.lastOrNull()?.content?.take(50)}")
                 resultMessages
             }
             else -> {

@@ -2,12 +2,14 @@ package eliseev.aiadvent.chat.di
 
 import android.content.Context
 import eliseev.aiadvent.chat.BuildConfig
+import eliseev.aiadvent.chat.data.database.ChatDatabase
 import eliseev.aiadvent.chat.data.model.AppSettings
 import eliseev.aiadvent.chat.data.model.SystemPromptProvider
 import eliseev.aiadvent.chat.data.repository.ChatRepository
 import eliseev.aiadvent.chat.data.sender.MessageSender
 import eliseev.aiadvent.chat.data.service.HistoryCompressionService
 import eliseev.aiadvent.chat.data.store.ChatMessageStore
+import eliseev.aiadvent.chat.data.store.PersistentChatMessageStore
 import eliseev.aiadvent.chat.domain.usecase.GetMessagesUseCase
 import eliseev.aiadvent.chat.domain.usecase.GetSystemPromptUseCase
 import eliseev.aiadvent.chat.domain.usecase.GetUserSettingsUseCase
@@ -35,18 +37,45 @@ val appModule = module {
         AppSettings(androidContext())
     }
     
+    // Room Database
+    single {
+        ChatDatabase.getDatabase(androidContext())
+    }
+    
+    // Персистентные хранилища для разных экранов
+    single(named("simpleChatPersistentStore")) {
+        PersistentChatMessageStore(
+            database = get(),
+            storeName = "simple_chat"
+        )
+    }
+    
+    single(named("logicTasksPersistentStore")) {
+        PersistentChatMessageStore(
+            database = get(),
+            storeName = "logic_tasks"
+        )
+    }
+    
+    single(named("defaultPersistentStore")) {
+        PersistentChatMessageStore(
+            database = get(),
+            storeName = "default"
+        )
+    }
+    
     // Отдельные хранилища для разных экранов
     single(named("simpleChatStore")) {
-        ChatMessageStore()
+        ChatMessageStore(get(named("simpleChatPersistentStore")))
     }
     
     single(named("logicTasksStore")) {
-        ChatMessageStore()
+        ChatMessageStore(get(named("logicTasksPersistentStore")))
     }
     
     // Для обратной совместимости
     single {
-        ChatMessageStore()
+        ChatMessageStore(get(named("defaultPersistentStore")))
     }
 }
 

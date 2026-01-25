@@ -1,5 +1,7 @@
 package eliseev.aiadvent.chat.data.model
 
+import kotlinx.serialization.Serializable
+
 data class ChatMessage(
     val role: MessageRole,
     val content: String,
@@ -10,6 +12,7 @@ data class ChatMessage(
     val originalMessageCount: Int = 0
 )
 
+@Serializable
 data class MessageMetrics(
     val responseTimeMs: Long,
     val promptTokens: Int,

@@ -69,6 +69,10 @@ class ChatRepository(
             return ChatResult.Error("Message cannot be empty")
         }
         
+        // Получаем текущие сообщения перед добавлением
+        var currentMessages = messageStore.getMessages()
+        Timber.d("Before adding message, current messages count: ${currentMessages.size}")
+        
         // Добавляем сообщение пользователя в хранилище
         val userMessageObj = ChatMessage(
             role = MessageRole.USER,
@@ -76,8 +80,9 @@ class ChatRepository(
         )
         messageStore.addMessage(userMessageObj)
         
-        // Получаем текущие сообщения
-        val currentMessages = messageStore.getMessages()
+        // Получаем обновленные сообщения после добавления
+        currentMessages = messageStore.getMessages()
+        Timber.d("After adding message, current messages count: ${currentMessages.size}")
         
         // Сжимаем историю перед отправкой (если включено)
         val isCompressionEnabled = appSettings.isHistoryCompressionEnabled()
@@ -117,7 +122,7 @@ class ChatRepository(
     /**
      * Очищает хранилище сообщений
      */
-    fun clearMessages() {
+    suspend fun clearMessages() {
         messageStore.clear()
     }
 }
