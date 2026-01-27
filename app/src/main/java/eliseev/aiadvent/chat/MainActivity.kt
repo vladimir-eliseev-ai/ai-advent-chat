@@ -17,12 +17,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import eliseev.aiadvent.chat.presentation.home.HomeScreen
 import eliseev.aiadvent.chat.presentation.logictasks.LogicTasksScreen
+import eliseev.aiadvent.chat.presentation.mcp.McpToolsScreen
 import eliseev.aiadvent.chat.presentation.simplechat.SimpleChatScreen
 
 sealed class Screen {
     object Home : Screen()
     object Chat : Screen()
     object LogicTasks : Screen()
+    object McpTools : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -52,7 +54,8 @@ private fun Navigation() {
         is Screen.Home -> {
             HomeScreen(
                 onChatClick = { currentScreen = Screen.Chat },
-                onLogicTasksClick = { currentScreen = Screen.LogicTasks }
+                onLogicTasksClick = { currentScreen = Screen.LogicTasks },
+                onMcpToolsClick = { currentScreen = Screen.McpTools }
             )
         }
         is Screen.Chat -> {
@@ -62,6 +65,11 @@ private fun Navigation() {
         }
         is Screen.LogicTasks -> {
             LogicTasksScreen(
+                onBackClick = { currentScreen = Screen.Home }
+            )
+        }
+        is Screen.McpTools -> {
+            McpToolsScreen(
                 onBackClick = { currentScreen = Screen.Home }
             )
         }

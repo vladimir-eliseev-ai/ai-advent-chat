@@ -21,7 +21,8 @@ import eliseev.aiadvent.chat.R
 @Composable
 fun HomeScreen(
     onChatClick: () -> Unit,
-    onLogicTasksClick: () -> Unit
+    onLogicTasksClick: () -> Unit,
+    onMcpToolsClick: () -> Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -59,6 +60,17 @@ fun HomeScreen(
             ) {
                 Text(
                     text = stringResource(R.string.logic_tasks),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            
+            Button(
+                onClick = onMcpToolsClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.mcp_tools),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )

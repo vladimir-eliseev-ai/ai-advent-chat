@@ -16,8 +16,10 @@ import eliseev.aiadvent.chat.domain.usecase.GetUserSettingsUseCase
 import eliseev.aiadvent.chat.domain.usecase.SaveUserSettingsUseCase
 import eliseev.aiadvent.chat.domain.usecase.SendMessageUseCase
 import eliseev.aiadvent.chat.domain.usecase.SendSimpleMessageUseCase
+import eliseev.aiadvent.chat.data.mcp.McpClientManager
 import eliseev.aiadvent.chat.presentation.chat.ChatViewModel
 import eliseev.aiadvent.chat.presentation.logictasks.LogicTasksViewModel
+import eliseev.aiadvent.chat.presentation.mcp.McpToolsViewModel
 import eliseev.aiadvent.chat.presentation.simplechat.SimpleChatViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -77,6 +79,9 @@ val appModule = module {
     single {
         ChatMessageStore(get(named("defaultPersistentStore")))
     }
+    
+    // MCP
+    single { McpClientManager() }
 }
 
 val repositoryModule = module {
@@ -150,6 +155,11 @@ val viewModelModule = module {
             getMessagesUseCase = get(named("simpleChatGetMessagesUseCase")),
             getUserSettingsUseCase = get(),
             saveUserSettingsUseCase = get()
+        )
+    }
+    viewModel {
+        McpToolsViewModel(
+            mcpClientManager = get()
         )
     }
 }

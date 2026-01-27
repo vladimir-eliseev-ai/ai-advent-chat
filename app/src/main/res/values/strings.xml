@@ -32,6 +32,7 @@
     
     <string name="chat">ЧАТ</string>
     <string name="logic_tasks">ЛОГИЧЕСКИЕ ЗАДАЧИ</string>
+    <string name="mcp_tools">MCP ИНСТРУМЕНТЫ</string>
     <string name="back">Назад</string>
     
     <string name="temperature">Температура</string>
