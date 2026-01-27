@@ -8,8 +8,12 @@ import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.request.header
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.StreamableHttpClientTransport
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequestParams
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.Tool
+import kotlinx.serialization.json.JsonObject
 import timber.log.Timber
 
 class McpClientManager {
@@ -75,11 +79,31 @@ class McpClientManager {
         try {
             client?.close()
             httpClient?.close()
+            Timber.d("MCP client disconnected")
         } catch (e: Exception) {
             Timber.e(e, "Error disconnecting MCP client")
         } finally {
             client = null
             httpClient = null
+        }
+    }
+
+    suspend fun callTool(toolName: String, arguments: JsonObject? = null): Result<CallToolResult> {
+        return try {
+            val mcpClient = client ?: return Result.failure(IllegalStateException("Client not connected"))
+
+            val request = CallToolRequest(
+                params = CallToolRequestParams(
+                    name = toolName,
+                    arguments = arguments
+                )
+            )
+            val result = mcpClient.callTool(request)
+            Timber.d("Tool '$toolName' called successfully")
+            Result.success(result)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to call tool: $toolName")
+            Result.failure(e)
         }
     }
 
