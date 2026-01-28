@@ -92,48 +92,101 @@ fun main() {
             
             var response: NewsApiResponse = httpClient.get(url).body()
             
-            // Если нет новостей на выбранном языке, пробуем английский
-            if (response.status == "ok" && response.articles.isEmpty() && language == "ru") {
-                val fallbackUrl = if (query.isNotEmpty()) {
-                    "https://newsapi.org/v2/everything?q=$query&language=en&pageSize=5&sortBy=publishedAt&apiKey=$apiKey"
-                } else {
-                    "https://newsapi.org/v2/top-headlines?language=en&pageSize=5&apiKey=$apiKey"
-                }
-                response = httpClient.get(fallbackUrl).body()
-            }
-            
-            if (response.status == "ok" && response.articles.isNotEmpty()) {
-                val newsList = response.articles.take(5).map { article ->
-                    NewsItemDto(
-                        title = article.title ?: "Без названия",
-                        description = article.description ?: "Нет описания",
-                        source = article.source?.name ?: "Неизвестно",
-                        publishedAt = article.publishedAt ?: "",
-                        url = article.url ?: ""
-                    )
-                }
-                val newsJson = Json { ignoreUnknownKeys = true }.encodeToString(newsList)
-                
+            // Проверяем на ошибку от NewsAPI
+            if (response.status != "ok" || response.articles == null) {
+                val errorMsg = response.message ?: "Неизвестная ошибка"
+                val errorCode = response.code ?: response.status
                 CallToolResult(
                     content = listOf(
-                        TextContent(text = newsJson)
-                    ),
-                    isError = false
-                )
-            } else if (response.status == "ok" && response.articles.isEmpty()) {
-                CallToolResult(
-                    content = listOf(
-                        TextContent(text = "Новости не найдены. Попробуйте другой язык или поисковый запрос.")
-                    ),
-                    isError = false
-                )
-            } else {
-                CallToolResult(
-                    content = listOf(
-                        TextContent(text = "Не удалось получить новости. Статус: ${response.status}. Проверьте API ключ или попробуйте позже.")
+                        TextContent(text = "Ошибка NewsAPI (код: $errorCode): $errorMsg. Проверьте API ключ или попробуйте позже.")
                     ),
                     isError = true
                 )
+            } else {
+                // Если нет новостей на выбранном языке, пробуем английский
+                if (response.status == "ok" && response.articles.isNullOrEmpty() && language == "ru") {
+                    val fallbackUrl = if (query.isNotEmpty()) {
+                        "https://newsapi.org/v2/everything?q=$query&language=en&pageSize=5&sortBy=publishedAt&apiKey=$apiKey"
+                    } else {
+                        "https://newsapi.org/v2/top-headlines?language=en&pageSize=5&apiKey=$apiKey"
+                    }
+                    response = httpClient.get(fallbackUrl).body()
+                    
+                    // Проверяем ошибку после fallback
+                    if (response.status != "ok" || response.articles == null) {
+                        val errorMsg = response.message ?: "Неизвестная ошибка"
+                        val errorCode = response.code ?: response.status
+                        CallToolResult(
+                            content = listOf(
+                                TextContent(text = "Ошибка NewsAPI при fallback (код: $errorCode): $errorMsg")
+                            ),
+                            isError = true
+                        )
+                    } else {
+                        // Обрабатываем успешный ответ после fallback
+                        if (response.status == "ok" && !response.articles.isNullOrEmpty()) {
+                            val newsList = response.articles!!.take(5).map { article ->
+                                NewsItemDto(
+                                    title = article.title ?: "Без названия",
+                                    description = article.description ?: "Нет описания",
+                                    source = article.source?.name ?: "Неизвестно",
+                                    publishedAt = article.publishedAt ?: "",
+                                    url = article.url ?: ""
+                                )
+                            }
+                            val newsJson = Json { ignoreUnknownKeys = true }.encodeToString(newsList)
+                            
+                            CallToolResult(
+                                content = listOf(
+                                    TextContent(text = newsJson)
+                                ),
+                                isError = false
+                            )
+                        } else {
+                            CallToolResult(
+                                content = listOf(
+                                    TextContent(text = "Новости не найдены. Попробуйте другой язык или поисковый запрос.")
+                                ),
+                                isError = false
+                            )
+                        }
+                    }
+                } else {
+                    // Обрабатываем успешный ответ
+                    if (response.status == "ok" && !response.articles.isNullOrEmpty()) {
+                        val newsList = response.articles!!.take(5).map { article ->
+                            NewsItemDto(
+                                title = article.title ?: "Без названия",
+                                description = article.description ?: "Нет описания",
+                                source = article.source?.name ?: "Неизвестно",
+                                publishedAt = article.publishedAt ?: "",
+                                url = article.url ?: ""
+                            )
+                        }
+                        val newsJson = Json { ignoreUnknownKeys = true }.encodeToString(newsList)
+                        
+                        CallToolResult(
+                            content = listOf(
+                                TextContent(text = newsJson)
+                            ),
+                            isError = false
+                        )
+                    } else if (response.status == "ok" && response.articles.isNullOrEmpty()) {
+                        CallToolResult(
+                            content = listOf(
+                                TextContent(text = "Новости не найдены. Попробуйте другой язык или поисковый запрос.")
+                            ),
+                            isError = false
+                        )
+                    } else {
+                        CallToolResult(
+                            content = listOf(
+                                TextContent(text = "Не удалось получить новости. Статус: ${response.status}. Проверьте API ключ или попробуйте позже.")
+                            ),
+                            isError = true
+                        )
+                    }
+                }
             }
         } catch (e: Exception) {
             CallToolResult(
@@ -161,8 +214,10 @@ fun main() {
 @Serializable
 data class NewsApiResponse(
     val status: String,
-    val totalResults: Int,
-    val articles: List<Article>
+    val totalResults: Int? = null,
+    val articles: List<Article>? = null,
+    val code: String? = null,
+    val message: String? = null
 )
 
 @Serializable

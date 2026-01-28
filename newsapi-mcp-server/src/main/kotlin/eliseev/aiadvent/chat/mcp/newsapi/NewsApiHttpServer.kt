@@ -24,6 +24,8 @@ import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -42,6 +44,42 @@ fun main() {
             clientJson(Json {
                 ignoreUnknownKeys = true
             })
+        }
+    }
+    
+    // Вспомогательная функция для обработки успешного ответа
+    fun processNewsResponse(response: NewsApiResponse): CallToolResult {
+        return if (response.status == "ok" && !response.articles.isNullOrEmpty()) {
+            val newsList = response.articles!!.take(5).mapIndexed { index, article ->
+                """
+                ${index + 1}. ${article.title}
+                   Описание: ${article.description ?: "Нет описания"}
+                   Источник: ${article.source?.name ?: "Неизвестно"}
+                   Дата: ${article.publishedAt}
+                   Ссылка: ${article.url}
+                """.trimIndent()
+            }.joinToString("\n\n")
+
+            CallToolResult(
+                content = listOf(
+                    TextContent(text = "Последние 5 новостей:\n\n$newsList")
+                ),
+                isError = false
+            )
+        } else if (response.status == "ok" && response.articles.isNullOrEmpty()) {
+            CallToolResult(
+                content = listOf(
+                    TextContent(text = "Новости не найдены. Попробуйте другой язык или поисковый запрос.")
+                ),
+                isError = false
+            )
+        } else {
+            CallToolResult(
+                content = listOf(
+                    TextContent(text = "Не удалось получить новости. Статус: ${response.status}. Проверьте API ключ или попробуйте позже.")
+                ),
+                isError = true
+            )
         }
     }
 
@@ -91,47 +129,42 @@ fun main() {
 
             var response: NewsApiResponse = httpClient.get(url).body()
 
-            // Если нет новостей на выбранном языке, пробуем английский
-            if (response.status == "ok" && response.articles.isEmpty() && language == "ru") {
-                val fallbackUrl = if (query.isNotEmpty()) {
-                    "https://newsapi.org/v2/everything?q=$query&language=en&pageSize=5&sortBy=publishedAt&apiKey=$apiKey"
-                } else {
-                    "https://newsapi.org/v2/top-headlines?language=en&pageSize=5&apiKey=$apiKey"
-                }
-                response = httpClient.get(fallbackUrl).body()
-            }
-
-            if (response.status == "ok" && response.articles.isNotEmpty()) {
-                val newsList = response.articles.take(5).mapIndexed { index, article ->
-                    """
-                    ${index + 1}. ${article.title}
-                       Описание: ${article.description ?: "Нет описания"}
-                       Источник: ${article.source?.name ?: "Неизвестно"}
-                       Дата: ${article.publishedAt}
-                       Ссылка: ${article.url}
-                    """.trimIndent()
-                }.joinToString("\n\n")
-
+            // Проверяем на ошибку от NewsAPI
+            if (response.status != "ok" || response.articles == null) {
+                val errorMsg = response.message ?: "Неизвестная ошибка"
+                val errorCode = response.code ?: response.status
                 CallToolResult(
                     content = listOf(
-                        TextContent(text = "Последние 5 новостей:\n\n$newsList")
-                    ),
-                    isError = false
-                )
-            } else if (response.status == "ok" && response.articles.isEmpty()) {
-                CallToolResult(
-                    content = listOf(
-                        TextContent(text = "Новости не найдены. Попробуйте другой язык или поисковый запрос.")
-                    ),
-                    isError = false
-                )
-            } else {
-                CallToolResult(
-                    content = listOf(
-                        TextContent(text = "Не удалось получить новости. Статус: ${response.status}. Проверьте API ключ или попробуйте позже.")
+                        TextContent(text = "Ошибка NewsAPI (код: $errorCode): $errorMsg. Проверьте API ключ или попробуйте позже.")
                     ),
                     isError = true
                 )
+            } else {
+                // Если нет новостей на выбранном языке, пробуем английский
+                if (response.status == "ok" && response.articles.isNullOrEmpty() && language == "ru") {
+                    val fallbackUrl = if (query.isNotEmpty()) {
+                        "https://newsapi.org/v2/everything?q=$query&language=en&pageSize=5&sortBy=publishedAt&apiKey=$apiKey"
+                    } else {
+                        "https://newsapi.org/v2/top-headlines?language=en&pageSize=5&apiKey=$apiKey"
+                    }
+                    response = httpClient.get(fallbackUrl).body()
+                    
+                    // Проверяем ошибку после fallback
+                    if (response.status != "ok" || response.articles == null) {
+                        val errorMsg = response.message ?: "Неизвестная ошибка"
+                        val errorCode = response.code ?: response.status
+                        CallToolResult(
+                            content = listOf(
+                                TextContent(text = "Ошибка NewsAPI при fallback (код: $errorCode): $errorMsg")
+                            ),
+                            isError = true
+                        )
+                    } else {
+                        processNewsResponse(response)
+                    }
+                } else {
+                    processNewsResponse(response)
+                }
             }
         } catch (e: Exception) {
             CallToolResult(
