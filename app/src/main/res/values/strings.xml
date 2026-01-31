@@ -33,6 +33,18 @@
     <string name="chat">ЧАТ</string>
     <string name="logic_tasks">ЛОГИЧЕСКИЕ ЗАДАЧИ</string>
     <string name="mcp_tools">MCP ИНСТРУМЕНТЫ</string>
+    <string name="brief_article">Краткая статья</string>
+    <string name="brief_article_url_hint">Ссылка на статью</string>
+    <string name="brief_summary_button">Краткое резюме</string>
+    <string name="saved_articles">Сохранённые статьи</string>
+    <string name="step_fetch">Загрузка статьи по ссылке</string>
+    <string name="step_summarize">Создание резюме</string>
+    <string name="step_save">Сохранение резюме</string>
+    <string name="step_done">Готово</string>
+    <string name="step_pending">Ожидание…</string>
+    <string name="step_running">Выполняется…</string>
+    <string name="step_ok">Выполнено</string>
+    <string name="step_failed">Ошибка</string>
     <string name="back">Назад</string>
     
     <string name="temperature">Температура</string>

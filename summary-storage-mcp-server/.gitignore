@@ -1,0 +1,13 @@
+.gradle/
+build/
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.DS_Store
+*.log
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+output/

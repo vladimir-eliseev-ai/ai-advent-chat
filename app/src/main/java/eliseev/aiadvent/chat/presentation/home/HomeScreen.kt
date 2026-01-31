@@ -22,7 +22,8 @@ import eliseev.aiadvent.chat.R
 fun HomeScreen(
     onChatClick: () -> Unit,
     onLogicTasksClick: () -> Unit,
-    onMcpToolsClick: () -> Unit
+    onMcpToolsClick: () -> Unit,
+    onBriefArticleClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -71,6 +72,17 @@ fun HomeScreen(
             ) {
                 Text(
                     text = stringResource(R.string.mcp_tools),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            Button(
+                onClick = onBriefArticleClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.brief_article),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )

@@ -19,7 +19,9 @@ import eliseev.aiadvent.chat.domain.usecase.SendSimpleMessageUseCase
 import eliseev.aiadvent.chat.data.mcp.McpClientManager
 import eliseev.aiadvent.chat.presentation.chat.ChatViewModel
 import eliseev.aiadvent.chat.presentation.logictasks.LogicTasksViewModel
+import eliseev.aiadvent.chat.presentation.briefarticle.BriefArticleViewModel
 import eliseev.aiadvent.chat.presentation.mcp.McpToolsViewModel
+import eliseev.aiadvent.chat.presentation.savedarticles.SavedArticlesViewModel
 import eliseev.aiadvent.chat.presentation.simplechat.SimpleChatViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -161,5 +163,11 @@ val viewModelModule = module {
         McpToolsViewModel(
             mcpClientManager = get()
         )
+    }
+    viewModel {
+        BriefArticleViewModel(mcpClientManager = get())
+    }
+    viewModel {
+        SavedArticlesViewModel(mcpClientManager = get())
     }
 }

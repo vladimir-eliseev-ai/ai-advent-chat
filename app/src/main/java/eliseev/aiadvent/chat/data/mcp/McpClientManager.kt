@@ -19,11 +19,32 @@ import timber.log.Timber
 class McpClientManager {
     private var client: Client? = null
     private var httpClient: HttpClient? = null
+    private var connectedUrl: String? = null
+
+    private companion object {
+        const val SEP = "==============="
+    }
+
+    private fun stageLabel(url: String): String = when {
+        url.contains(":8082") -> "Этап 1 — чтение статьи"
+        url.contains(":8083") -> "Этап 2 — создание резюме"
+        url.contains(":8084") -> "Этап 3 — сохранение / список"
+        else -> url
+    }
+
+    private fun mcpLog(message: String) {
+        Timber.tag("MCP").d("$SEP $message")
+    }
 
     suspend fun connect(url: String, authToken: String? = null): Result<Unit> {
         return try {
+            if (client != null && connectedUrl == url) {
+                mcpLog("[${stageLabel(url)}] переиспользовано соединение")
+                return Result.success(Unit)
+            }
             disconnect()
 
+            mcpLog("[${stageLabel(url)}] подключение...")
             httpClient = HttpClient(Android) {
                 engine {
                     connectTimeout = 30_000
@@ -54,10 +75,11 @@ class McpClientManager {
             )
 
             client!!.connect(transport)
-            Timber.d("MCP client connected to: $url")
+            connectedUrl = url
+            mcpLog("[${stageLabel(url)}] подключено")
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to connect to MCP server: $url")
+            Timber.tag("MCP").e(e, "$SEP [${stageLabel(url)}] ошибка подключения")
             Result.failure(e)
         }
     }
@@ -65,26 +87,30 @@ class McpClientManager {
     suspend fun listTools(): Result<List<Tool>> {
         return try {
             val mcpClient = client ?: return Result.failure(IllegalStateException("Client not connected"))
-
+            mcpLog("запрос списка инструментов...")
             val tools = mcpClient.listTools()
-            Timber.d("Retrieved ${tools.tools.size} tools from MCP server")
+            mcpLog("получено инструментов: ${tools.tools.size}")
             Result.success(tools.tools)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to list tools")
+            Timber.tag("MCP").e(e, "$SEP ошибка получения списка инструментов")
             Result.failure(e)
         }
     }
 
     suspend fun disconnect() {
+        val wasUrl = connectedUrl
         try {
             client?.close()
             httpClient?.close()
-            Timber.d("MCP client disconnected")
+            if (wasUrl != null) {
+                mcpLog("[${stageLabel(wasUrl)}] отключено")
+            }
         } catch (e: Exception) {
-            Timber.e(e, "Error disconnecting MCP client")
+            Timber.tag("MCP").e(e, "$SEP ошибка при отключении")
         } finally {
             client = null
             httpClient = null
+            connectedUrl = null
         }
     }
 
@@ -98,11 +124,12 @@ class McpClientManager {
                     arguments = arguments
                 )
             )
+            mcpLog("вызов инструмента «$toolName»...")
             val result = mcpClient.callTool(request)
-            Timber.d("Tool '$toolName' called successfully")
+            mcpLog("инструмент «$toolName» — OK")
             Result.success(result)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to call tool: $toolName")
+            Timber.tag("MCP").e(e, "$SEP ошибка вызова инструмента «$toolName»")
             Result.failure(e)
         }
     }

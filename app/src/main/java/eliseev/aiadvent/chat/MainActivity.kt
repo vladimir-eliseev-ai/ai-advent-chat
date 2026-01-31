@@ -15,9 +15,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import eliseev.aiadvent.chat.presentation.briefarticle.BriefArticleScreen
 import eliseev.aiadvent.chat.presentation.home.HomeScreen
 import eliseev.aiadvent.chat.presentation.logictasks.LogicTasksScreen
 import eliseev.aiadvent.chat.presentation.mcp.McpToolsScreen
+import eliseev.aiadvent.chat.presentation.savedarticles.SavedArticlesScreen
 import eliseev.aiadvent.chat.presentation.simplechat.SimpleChatScreen
 
 sealed class Screen {
@@ -25,6 +27,8 @@ sealed class Screen {
     object Chat : Screen()
     object LogicTasks : Screen()
     object McpTools : Screen()
+    object BriefArticle : Screen()
+    object SavedArticles : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -55,8 +59,18 @@ private fun Navigation() {
             HomeScreen(
                 onChatClick = { currentScreen = Screen.Chat },
                 onLogicTasksClick = { currentScreen = Screen.LogicTasks },
-                onMcpToolsClick = { currentScreen = Screen.McpTools }
+                onMcpToolsClick = { currentScreen = Screen.McpTools },
+                onBriefArticleClick = { currentScreen = Screen.BriefArticle }
             )
+        }
+        is Screen.BriefArticle -> {
+            BriefArticleScreen(
+                onBackClick = { currentScreen = Screen.Home },
+                onSavedArticlesClick = { currentScreen = Screen.SavedArticles }
+            )
+        }
+        is Screen.SavedArticles -> {
+            SavedArticlesScreen(onBackClick = { currentScreen = Screen.BriefArticle })
         }
         is Screen.Chat -> {
             SimpleChatScreen(
