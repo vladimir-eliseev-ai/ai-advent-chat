@@ -32,6 +32,13 @@ application {
     mainClass.set("eliseev.aiadvent.chat.mcp.articlereader.ArticleReaderMcpServerKt")
 }
 
+tasks.shadowJar {
+    archiveBaseName.set("article-reader-mcp-server")
+    archiveClassifier.set("")
+    archiveVersion.set("")
+    manifest { attributes["Main-Class"] = "eliseev.aiadvent.chat.mcp.articlereader.ArticleReaderMcpServerKt" }
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) }
 }

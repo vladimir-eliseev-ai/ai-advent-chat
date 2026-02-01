@@ -24,14 +24,14 @@ java {
 }
 
 application {
-    mainClass.set("eliseev.aiadvent.chat.mcp.storage.SummaryStorageMcpServerKt")
+    mainClass.set("eliseev.aiadvent.chat.mcp.orchestrator.EnvironmentOrchestratorMcpServerKt")
 }
 
 tasks.shadowJar {
-    archiveBaseName.set("summary-storage-mcp-server")
+    archiveBaseName.set("environment-orchestrator")
     archiveClassifier.set("")
     archiveVersion.set("")
-    manifest { attributes["Main-Class"] = "eliseev.aiadvent.chat.mcp.storage.SummaryStorageMcpServerKt" }
+    manifest { attributes["Main-Class"] = "eliseev.aiadvent.chat.mcp.orchestrator.EnvironmentOrchestratorMcpServerKt" }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

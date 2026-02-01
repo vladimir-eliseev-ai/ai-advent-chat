@@ -29,6 +29,7 @@ class McpClientManager {
         url.contains(":8082") -> "Этап 1 — чтение статьи"
         url.contains(":8083") -> "Этап 2 — создание резюме"
         url.contains(":8084") -> "Этап 3 — сохранение / список"
+        url.contains(":8090") -> "Оркестратор (Docker)"
         else -> url
     }
 
@@ -36,7 +37,7 @@ class McpClientManager {
         Timber.tag("MCP").d("$SEP $message")
     }
 
-    suspend fun connect(url: String, authToken: String? = null): Result<Unit> {
+    suspend fun connect(url: String, authToken: String? = null, requestTimeoutMs: Int? = null): Result<Unit> {
         return try {
             if (client != null && connectedUrl == url) {
                 mcpLog("[${stageLabel(url)}] переиспользовано соединение")
@@ -44,17 +45,18 @@ class McpClientManager {
             }
             disconnect()
 
+            val timeout = requestTimeoutMs ?: 60_000
             mcpLog("[${stageLabel(url)}] подключение...")
             httpClient = HttpClient(Android) {
                 engine {
                     connectTimeout = 30_000
-                    socketTimeout = 60_000
+                    socketTimeout = timeout
                 }
                 install(SSE)
                 install(HttpTimeout) {
-                    requestTimeoutMillis = 60_000
+                    requestTimeoutMillis = timeout.toLong()
                     connectTimeoutMillis = 30_000
-                    socketTimeoutMillis = 60_000
+                    socketTimeoutMillis = timeout.toLong()
                 }
                 if (authToken != null && authToken.isNotBlank()) {
                     defaultRequest {

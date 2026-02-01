@@ -145,7 +145,7 @@ fun main() {
     }
     
     try {
-        embeddedServer(Netty, port = actualPort) {
+        embeddedServer(Netty, port = actualPort, host = "0.0.0.0") {
         install(ContentNegotiation) {
             json(Json {
                 prettyPrint = true

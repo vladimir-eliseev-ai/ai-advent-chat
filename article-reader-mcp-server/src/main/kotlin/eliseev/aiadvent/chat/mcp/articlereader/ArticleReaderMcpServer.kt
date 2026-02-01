@@ -110,7 +110,7 @@ fun main() {
         setSessionIdGenerator(null)
     }
     runBlocking { server.connect(transport) }
-    embeddedServer(Netty, port = port) {
+    embeddedServer(Netty, port = port, host = "0.0.0.0") {
         install(ServerContentNegotiation) { serverJson() }
         install(SSE)
         routing {

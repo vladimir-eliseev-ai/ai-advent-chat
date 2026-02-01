@@ -1,0 +1,12 @@
+.git
+.gradle
+**/build/
+.idea
+*.iml
+local.properties
+.DS_Store
+captures
+.externalNativeBuild
+.cxx
+*.md
+!docker/README.md

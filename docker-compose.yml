@@ -1,0 +1,39 @@
+services:
+  article-reader:
+    build:
+      context: .
+      dockerfile: docker/article-reader.Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: "8082"
+
+  article-summarizer:
+    build:
+      context: .
+      dockerfile: docker/article-summarizer.Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: "8083"
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+
+  summary-storage:
+    build:
+      context: .
+      dockerfile: docker/summary-storage.Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: "8084"
+
+  article-summary:
+    build:
+      context: .
+      dockerfile: docker/article-summary.Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OUTPUT_DIR: /app/output

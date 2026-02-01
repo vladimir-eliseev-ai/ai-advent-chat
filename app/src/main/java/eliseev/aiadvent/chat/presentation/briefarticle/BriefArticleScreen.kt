@@ -82,6 +82,32 @@ fun BriefArticleScreen(
                 singleLine = true
             )
 
+            OutlinedButton(
+                onClick = { viewModel.startArticlesEnvironment() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.environmentLoading
+            ) {
+                if (uiState.environmentLoading) {
+                    Text(stringResource(R.string.start_environment_running))
+                } else {
+                    Text(stringResource(R.string.start_environment_button))
+                }
+            }
+            if (uiState.environmentMessage != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Text(
+                        text = uiState.environmentMessage!!,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Button(onClick = { viewModel.clearEnvironmentMessage() }, modifier = Modifier.padding(12.dp)) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

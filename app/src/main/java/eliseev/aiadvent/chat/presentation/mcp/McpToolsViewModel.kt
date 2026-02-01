@@ -2,6 +2,7 @@ package eliseev.aiadvent.chat.presentation.mcp
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import eliseev.aiadvent.chat.BuildConfig
 import eliseev.aiadvent.chat.data.mcp.McpClientManager
 import eliseev.aiadvent.chat.presentation.mcp.model.NewsItem
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
@@ -16,7 +17,8 @@ import kotlinx.serialization.json.buildJsonObject
 
 enum class McpServerType {
     GITHUB,
-    NEWSAPI
+    NEWSAPI,
+    ORCHESTRATOR
 }
 
 data class McpToolsUiState(
@@ -33,6 +35,8 @@ data class McpToolsUiState(
 
 private const val GITHUB_MCP_URL = "https://api.githubcopilot.com/mcp/"
 private const val NEWSAPI_MCP_URL = "http://10.0.2.2:8080"
+private val ORCHESTRATOR_MCP_URL: String
+    get() = BuildConfig.MCP_BASE_URL.ifBlank { "http://10.0.2.2" }.trimEnd('/') + ":8090"
 
 class McpToolsViewModel(
     private val mcpClientManager: McpClientManager
@@ -64,8 +68,9 @@ class McpToolsViewModel(
             val url = when (serverType) {
                 McpServerType.GITHUB -> GITHUB_MCP_URL
                 McpServerType.NEWSAPI -> NEWSAPI_MCP_URL
+                McpServerType.ORCHESTRATOR -> ORCHESTRATOR_MCP_URL
             }
-            
+
             val authToken = if (serverType == McpServerType.GITHUB) {
                 val token = _uiState.value.authToken.trim()
                 if (token.isEmpty()) {

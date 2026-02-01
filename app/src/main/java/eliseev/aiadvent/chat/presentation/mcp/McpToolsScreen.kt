@@ -225,6 +225,18 @@ private fun McpToolsContent(
                     )
                     Text("NewsAPI MCP Server")
                 }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = uiState.serverType == McpServerType.ORCHESTRATOR,
+                        onClick = { viewModel.setServerType(McpServerType.ORCHESTRATOR) },
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    Text(stringResource(R.string.orchestrator_server))
+                }
             }
         }
         }

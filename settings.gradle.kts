@@ -25,4 +25,5 @@ include(":article-summary-mcp-server")
 include(":article-reader-mcp-server")
 include(":article-summarizer-mcp-server")
 include(":summary-storage-mcp-server")
+include(":environment-orchestrator")
  

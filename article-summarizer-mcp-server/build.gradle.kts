@@ -31,6 +31,13 @@ application {
     mainClass.set("eliseev.aiadvent.chat.mcp.summarizer.ArticleSummarizerMcpServerKt")
 }
 
+tasks.shadowJar {
+    archiveBaseName.set("article-summarizer-mcp-server")
+    archiveClassifier.set("")
+    archiveVersion.set("")
+    manifest { attributes["Main-Class"] = "eliseev.aiadvent.chat.mcp.summarizer.ArticleSummarizerMcpServerKt" }
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) }
 }

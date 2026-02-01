@@ -46,6 +46,9 @@
     <string name="step_ok">Выполнено</string>
     <string name="step_failed">Ошибка</string>
     <string name="back">Назад</string>
+    <string name="start_environment_button">Поднять окружение (Docker)</string>
+    <string name="start_environment_running">Запуск…</string>
+    <string name="orchestrator_server">Оркестратор (Docker)</string>
     
     <string name="temperature">Температура</string>
     <string name="temperature_settings_title">Настройка температуры</string>

@@ -26,7 +26,9 @@ data class BriefArticleUiState(
     val step2: StepState = StepState("", StepStatus.PENDING),
     val step3: StepState = StepState("", StepStatus.PENDING),
     val summaryResult: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    val environmentLoading: Boolean = false,
+    val environmentMessage: String? = null
 )
 
 private val MCP_BASE_URL: String
@@ -34,6 +36,7 @@ private val MCP_BASE_URL: String
 private const val PORT_READER = 8082
 private const val PORT_SUMMARIZER = 8083
 private const val PORT_STORAGE = 8084
+private const val PORT_ORCHESTRATOR = 8090
 
 class BriefArticleViewModel(
     private val mcpClientManager: McpClientManager
@@ -69,7 +72,7 @@ class BriefArticleViewModel(
             if (connect1.isFailure) {
                 _uiState.value = _uiState.value.copy(
                     step1 = StepState("Загрузка статьи", StepStatus.FAILED),
-                    error = "Не удалось подключиться к MCP (чтение): ${connect1.exceptionOrNull()?.message}"
+                    error = "Не удалось подключиться к MCP (чтение): ${connect1.exceptionOrNull()?.message}\n\nЕсли через Docker: на хосте в каталоге проекта выполните «docker compose up -d», дождитесь сборки (3–5 мин), затем «docker compose ps» — все сервисы должны быть running. После этого повторите «Краткое резюме»."
                 )
                 return@launch
             }
@@ -157,6 +160,33 @@ class BriefArticleViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun startArticlesEnvironment() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(environmentLoading = true, environmentMessage = null)
+            mcpClientManager.disconnect()
+            val orchestratorUrl = "$MCP_BASE_URL:$PORT_ORCHESTRATOR"
+            val connect = mcpClientManager.connect(orchestratorUrl, requestTimeoutMs = 300_000)
+            if (connect.isFailure) {
+                _uiState.value = _uiState.value.copy(
+                    environmentLoading = false,
+                    environmentMessage = "Не удалось подключиться к оркестратору: ${connect.exceptionOrNull()?.message}\n\nЗапустите на хосте (ПК) в каталоге проекта:\nCOMPOSE_DIR=\$(pwd) ./gradlew :environment-orchestrator:run"
+                )
+                return@launch
+            }
+            val result = mcpClientManager.callTool("start_articles_environment", buildJsonObject { })
+            mcpClientManager.disconnect()
+            val msg = textFromResult(result.getOrNull())
+            _uiState.value = _uiState.value.copy(
+                environmentLoading = false,
+                environmentMessage = msg ?: (if (result.isFailure) result.exceptionOrNull()?.message else "Готово")
+            )
+        }
+    }
+
+    fun clearEnvironmentMessage() {
+        _uiState.value = _uiState.value.copy(environmentMessage = null)
     }
 
     override fun onCleared() {

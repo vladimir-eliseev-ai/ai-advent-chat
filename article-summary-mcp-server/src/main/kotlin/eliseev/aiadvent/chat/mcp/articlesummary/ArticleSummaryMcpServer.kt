@@ -6,11 +6,13 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.serialization.kotlinx.json.json as serverJson
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -32,6 +34,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.jsoup.Jsoup
@@ -63,7 +66,7 @@ fun main() {
 
     fun fetchArticleContent(url: String): Result<String> = runCatching {
         if (url.isBlank()) return@runCatching error("URL не указан")
-        val html = httpClient.get(url).body<String>()
+        val html = runBlocking { httpClient.get(url).body<String>() }
         val text = Jsoup.parse(html).text().replace(Regex("\\s+"), " ").trim()
         if (text.length > MAX_ARTICLE_CHARS) text.take(MAX_ARTICLE_CHARS) + "\n[... обрезано ...]" else text
     }
@@ -77,16 +80,20 @@ fun main() {
                 put("model", deepSeekModel)
                 put("stream", false)
                 put("temperature", 0.3)
-                put("messages", listOf(buildJsonObject {
-                    put("role", "user")
-                    put("content", prompt)
-                }))
+                put("messages", buildJsonArray {
+                    add(buildJsonObject {
+                        put("role", "user")
+                        put("content", prompt)
+                    })
+                })
             }
-            val response: JsonObject = httpClient.post("$DEEPSEEK_BASE_URL/chat/completions") {
-                contentType(ContentType.Application.Json)
-                header("Authorization", "Bearer $deepSeekApiKey")
-                setBody(body.toString())
-            }.body()
+            val response: JsonObject = runBlocking {
+                httpClient.post("$DEEPSEEK_BASE_URL/chat/completions") {
+                    contentType(ContentType.Application.Json)
+                    header("Authorization", "Bearer $deepSeekApiKey")
+                    setBody(body.toString())
+                }.body()
+            }
             val choices = response["choices"] as? JsonArray ?: return@runCatching null
             val first = choices.getOrNull(0) as? JsonObject ?: return@runCatching null
             val message = first["message"] as? JsonObject ?: return@runCatching null
@@ -283,7 +290,7 @@ fun main() {
     val transport = StreamableHttpServerTransport(enableJsonResponse = true)
     runBlocking { server.connect(transport) }
 
-    embeddedServer(Netty, port = port) {
+    embeddedServer(Netty, port = port, host = "0.0.0.0") {
         install(ServerContentNegotiation) { serverJson() }
         install(SSE)
         routing {
